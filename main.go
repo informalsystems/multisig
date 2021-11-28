@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/urfave/cli/v2"
@@ -20,10 +21,10 @@ import (
 // global vars
 var (
 
-	// config file
+	// config file - expected to be in the present working directory
 	configFile = "config.toml"
 
-	// files for signing
+	// files for signing - we use these filenames in the local working directory and in the remote bucket
 	unsignedJSON = "unsigned.json"
 	signedJSON   = "signed.json"
 	signDataJSON = "signdata.json"
@@ -53,18 +54,24 @@ func main() {
 						Required: true,
 					},
 					&cli.IntFlag{
-						Name:     "sequence",
-						Aliases:  []string{"s"},
-						Value:    0,
-						Usage:    "sequence number for the tx",
-						Required: true,
+						Name:    "sequence",
+						Aliases: []string{"s"},
+						Value:   0,
+						Usage:   "sequence number for the tx",
+						// Required: true,
 					},
 					&cli.IntFlag{
-						Name:     "account",
-						Aliases:  []string{"a"},
-						Value:    0,
-						Usage:    "account number for the tx",
-						Required: true,
+						Name:    "account",
+						Aliases: []string{"a"},
+						Value:   0,
+						Usage:   "account number for the tx",
+						//Required: true,
+					},
+					&cli.StringFlag{
+						Name:    "node",
+						Aliases: []string{"n"},
+						Value:   "http://localhost:26657",
+						Usage:   "tendermint rpc node to get sequence and account number from",
 					},
 				},
 				Action:    cmdGenerate,
@@ -89,6 +96,13 @@ func main() {
 				Usage:     "list items in a directory",
 				Action:    cmdList,
 				ArgsUsage: "<chain name> <key name>",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "all",
+						Value: false,
+						Usage: "list files for all chains and keys",
+					},
+				},
 			},
 			{
 				Name:      "broadcast",
@@ -100,6 +114,51 @@ func main() {
 						Name:  "node",
 						Value: "",
 						Usage: "node address to broadcast too. flag overrides config",
+					},
+					&cli.StringFlag{
+						Name:     "description",
+						Aliases:  []string{"d"},
+						Value:    "",
+						Usage:    "description of the tx to be logged",
+						Required: true,
+					},
+				},
+			},
+			{
+				Name:  "raw",
+				Usage: "raw operations on the s3 bucket",
+				// Action:      cmdRaw,
+				Subcommands: []*cli.Command{
+					{
+						Name:      "cat",
+						Usage:     "dump the contents of all files in a directory",
+						ArgsUsage: "<chain name> <key name>",
+						Action:    cmdRawCat,
+					},
+					{
+						Name:      "up",
+						Usage:     "upload a local file to a path in the s3 bucket",
+						ArgsUsage: "<source filepath> <destination filepath>",
+						Action:    cmdRawUp,
+					},
+					{
+						Name:      "down",
+						Usage:     "download a file from the s3 bucket",
+						ArgsUsage: "<source filepath> <destination filepath>",
+						Action:    cmdRawDown,
+					},
+					{
+						Name:      "mkdir",
+						Usage:     "create a directory in the s3 bucket - must end with a '/'",
+						UsageText: "note there are no directories in s3, just empty objects that end with a '/'",
+						ArgsUsage: "<directory path>",
+						Action:    cmdRawMkdir,
+					},
+					{
+						Name:      "delete",
+						Usage:     "delete a file from the s3 bucket",
+						ArgsUsage: "<filepath>",
+						Action:    cmdRawDelete,
 					},
 				},
 			},
@@ -113,6 +172,184 @@ func main() {
 
 }
 
+// copy a local file to the bucket
+func cmdRawUp(c *cli.Context) error {
+	args := c.Args()
+	first, tail := args.First(), args.Tail()
+	if len(tail) < 1 {
+		fmt.Println("must specify args:", c.Command.ArgsUsage)
+		return nil
+	}
+
+	local := first
+	remote := tail[0]
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+
+	// read the local file
+	localBytes, err := ioutil.ReadFile(local)
+	if err != nil {
+		return err
+	}
+
+	// upload it
+	dir := filepath.Dir(remote)
+	fileName := filepath.Base(remote)
+	if err := awsUpload(sess, conf.AWS.Bucket, dir, fileName, localBytes); err != nil {
+		return err
+	}
+	return nil
+}
+
+// copy a local file to the bucket
+func cmdRawDown(c *cli.Context) error {
+	args := c.Args()
+	first, tail := args.First(), args.Tail()
+	if len(tail) < 1 {
+		fmt.Println("must specify args:", c.Command.ArgsUsage)
+		return nil
+	}
+
+	remote := first
+	local := tail[0]
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+
+	// download it
+	dir := filepath.Dir(remote)
+	fileName := filepath.Base(remote)
+	file, err := awsDownload(sess, conf.AWS.Bucket, dir, fileName)
+	if err != nil {
+		return err
+	}
+
+	// rename if necessary
+	oldName := file.Name()
+	newName := local
+	if oldName != newName {
+		return os.Rename(oldName, newName)
+	}
+	return nil
+}
+
+// dump content of all files in a dir
+func cmdRawCat(c *cli.Context) error {
+	args := c.Args()
+	first, tail := args.First(), args.Tail()
+	if len(tail) < 1 {
+		fmt.Println("must specify args:", c.Command.ArgsUsage)
+		return nil
+	}
+
+	chainName := first
+	keyName := tail[0]
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+
+	txDir := filepath.Join(chainName, keyName)
+
+	svc := s3.New(sess)
+
+	// list all items in bucket
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
+	if err != nil {
+		return err
+	}
+
+	// get only those in our folder
+	files := []string{}
+	for _, item := range resp.Contents {
+		key := *item.Key
+		keyDir := filepath.Dir(key)
+		keyBase := strings.TrimPrefix(key, keyDir)
+		keyBase = strings.TrimPrefix(keyBase, "/")
+		if keyDir == txDir && keyBase != "" {
+			files = append(files, keyBase)
+		}
+	}
+
+	if len(files) == 0 {
+		fmt.Println("No files in", txDir)
+		return nil
+	}
+
+	fmt.Println("") // for spacing
+	for _, f := range files {
+		// download all files in folder
+		_, err := awsDownload(sess, conf.AWS.Bucket, txDir, f)
+		if err != nil {
+			return err
+		}
+
+		// cat the file
+		b, err := ioutil.ReadFile(f)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("---------- %s ----------\n", f)
+		fmt.Println("")
+		fmt.Println(string(b))
+		fmt.Println("")
+		os.Remove(f)
+	}
+
+	return nil
+}
+
+// copy a local file to the bucket
+func cmdRawDelete(c *cli.Context) error {
+	args := c.Args()
+	filePath := args.First()
+	if filePath == "" {
+		fmt.Println("must specify args:", c.Command.ArgsUsage)
+		return nil
+	}
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	awsDelete(sess, conf.AWS.Bucket, filePath)
+	return nil
+}
+
+// create an empty object with the given name
+func cmdRawMkdir(c *cli.Context) error {
+	args := c.Args()
+	dirName := args.First()
+	if dirName == "" {
+		fmt.Println("must specify args:", c.Command.ArgsUsage)
+		return nil
+	} else if !strings.HasSuffix(dirName, "/") {
+		fmt.Println("directory paths must end with a '/'")
+		return nil
+	}
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	awsMkdir(sess, conf.AWS.Bucket, dirName)
+	return nil
+}
+
 func cmdGenerate(c *cli.Context) error {
 	args := c.Args()
 	first, tail := args.First(), args.Tail()
@@ -123,9 +360,6 @@ func cmdGenerate(c *cli.Context) error {
 	chainName := first
 	keyName := tail[0]
 
-	accountNum := c.Int("account")
-	sequenceNum := c.Int("sequence")
-
 	conf, err := loadConfig(configFile)
 	if err != nil {
 		return err
@@ -134,6 +368,52 @@ func cmdGenerate(c *cli.Context) error {
 	chain, found := conf.GetChain(chainName)
 	if !found {
 		return fmt.Errorf("chain %s not found in config", chainName)
+	}
+	key, found := conf.GetKey(keyName)
+	if !found {
+		return fmt.Errorf("key %s not found in config", keyName)
+	}
+
+	//-----------------------------------
+	// find account and sequence numbers
+	// either from a node and/or from CLI
+	//------------------------------------
+
+	// if account or sequence arent set, the node must be set
+	noAccOrSeq := !(c.IsSet("account") || c.IsSet("sequence"))
+	noNode := !c.IsSet("node")
+	if noAccOrSeq && noNode {
+		fmt.Println("if the --account and --sequence are not provided, a --node must be specified")
+		return nil
+	}
+
+	var (
+		accountNum  int
+		sequenceNum int
+	)
+
+	// if theres a node, get the acc and seq from it
+	if c.IsSet("node") {
+
+		var err error
+		binary := chain.Binary
+		address, err := bech32ify(key.Address, chain.Prefix)
+		if err != nil {
+			return err
+		}
+		node := c.String("node")
+		accountNum, sequenceNum, err = getAccSeq(binary, address, node)
+		if err != nil {
+			return err
+		}
+	}
+
+	// if the acc or seq flags are set, overwrite the node
+	if c.IsSet("account") {
+		accountNum = c.Int("account")
+	}
+	if c.IsSet("sequence") {
+		sequenceNum = c.Int("sequence")
 	}
 
 	// read the unsigned tx file
@@ -171,6 +451,41 @@ func cmdGenerate(c *cli.Context) error {
 }
 
 func cmdList(c *cli.Context) error {
+	if c.Bool("all") {
+		return listAll(c)
+	}
+	return listDir(c)
+}
+
+func listAll(c *cli.Context) error {
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	svc := s3.New(sess)
+
+	// list all items in bucket
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
+	if err != nil {
+		return err
+	}
+
+	files := []string{}
+	for _, item := range resp.Contents {
+		key := *item.Key
+		files = append(files, key)
+	}
+
+	for _, f := range files {
+		fmt.Println(f)
+	}
+
+	return nil
+
+}
+
+func listDir(c *cli.Context) error {
 	args := c.Args()
 	first, tail := args.First(), args.Tail()
 	if len(tail) < 1 {
@@ -207,6 +522,7 @@ func cmdList(c *cli.Context) error {
 	}
 
 	return nil
+
 }
 
 func cmdSign(c *cli.Context) error {
@@ -410,6 +726,7 @@ func cmdBroadcast(c *cli.Context) error {
 		return err
 	}
 
+	// setup for the `tx multisign` command
 	binary := chain.Binary
 	accNum := fmt.Sprintf("%d", signData.Account)
 	seqNum := fmt.Sprintf("%d", signData.Sequence)
@@ -463,6 +780,14 @@ func cmdBroadcast(c *cli.Context) error {
 	fmt.Println(cmd)
 	fmt.Println(string(b))
 
+	code, hash, err := parseTxResult(b)
+	if err != nil {
+		return err
+	}
+
+	// TODO: write the result in a log file
+	_, _ = code, hash
+
 	// cleanup txDir in the bucket by deleting everything
 	for _, f := range fileNames {
 		awsString := aws.String(filepath.Join(txDir, f))
@@ -492,4 +817,93 @@ func cmdBroadcast(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+// TODO can we get a programmatic result from the tx?
+// Need to parse out the return code and the tx hash
+func parseTxResult(txResultBytes []byte) (int, string, error) {
+	spl := strings.Split(string(txResultBytes), "\n")
+	var (
+		code      int
+		codeFound bool
+		txhash    string
+		err       error
+	)
+	for _, s := range spl {
+		if strings.Contains(s, "code:") {
+			c := strings.TrimPrefix(s, "code: ")
+			code, err = strconv.Atoi(c)
+			if err != nil {
+				return 0, "", fmt.Errorf("code in tx response is not an integer")
+			}
+			codeFound = true
+
+		} else if strings.Contains(s, "txhash:") {
+			txhash = strings.TrimPrefix(s, "txhash: ")
+		}
+	}
+
+	if !codeFound {
+		return 0, "", fmt.Errorf("couldn't find code in tx response")
+	} else if txhash == "" {
+		return 0, "", fmt.Errorf("couldn't find txhash in tx response")
+	}
+	return code, txhash, nil
+}
+
+// TODO can we get this more programmatically ?
+// Need to parse out the account and sequence number
+// Return: accountNumber, sequenceNumber, error
+func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
+	spl := strings.Split(string(queryResponseBytes), "\n")
+	var (
+		acc string
+		seq string
+	)
+	for _, s := range spl {
+		if strings.Contains(s, "account_number:") {
+			c := strings.TrimPrefix(s, `account_number:`)
+			c = strings.TrimSpace(c)
+			c = strings.TrimPrefix(c, `"`)
+			c = strings.TrimSuffix(c, `"`)
+			acc = c
+		} else if strings.Contains(s, "sequence:") {
+			c := strings.TrimPrefix(s, `sequence:`)
+			c = strings.TrimSpace(c)
+			c = strings.TrimPrefix(c, `"`)
+			c = strings.TrimSuffix(c, `"`)
+			seq = c
+		}
+	}
+
+	accInt, err := strconv.Atoi(acc)
+	if err != nil {
+		return 0, 0, fmt.Errorf("account number in query response is not an integer")
+	}
+
+	seqInt, err := strconv.Atoi(seq)
+	if err != nil {
+		return 0, 0, fmt.Errorf("sequence in query response is not an integer")
+	}
+
+	return accInt, seqInt, nil
+}
+
+// Return: accountNumber, sequenceNumber, error
+func getAccSeq(binary, addr, node string) (int, int, error) {
+	cmdArgs := []string{"query", "--node", node, "account", addr}
+	cmd := exec.Command(binary, cmdArgs...)
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(cmd)
+		fmt.Println(string(b))
+		return 0, 0, err
+	}
+	fmt.Println(cmd)
+	fmt.Println(string(b))
+
+	return parseAccountQuery(b)
 }

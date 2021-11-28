@@ -1,16 +1,23 @@
 # Multisig
 
-WARNING: this tool is very new, you probably shouldn't use it!
+WARNING: this tool is very new and may break at any time, you probably shouldn't use it!
 
 This is a tool for managing multisig txs with Cosmos-SDK based binaries and an
 AWS S3 bucket.
+
+See the [github issue #5661 on the
+Cosmos-SDK](https://github.com/cosmos/cosmos-sdk/issues/5661) for discussion
+about multisig handling. This tool is a multi-chain/multi-key solution to that problem using S3
+buckets.
 
 ## How it Works
 
 Quick summary, with much more below:
 
 - Configure an S3 bucket, some keys, and some chains in a TOML file.
-- Create a directory in the bucket for each chain and key, like `/<chain name>/<key name>`
+- Create a directory in the bucket for each chain and key, like `/<chain name>/<key name>/`
+- All signers have access to the entire s3 bucket, and can read/write at will, so assumption is they are all
+  trusted
 - `multisig generate` takes a generated unsigned tx file and pushes it to the s3 directory along with data needed for signing (eg. account number, sequence number, chain id)
 - `multisig sign` fetches the unsigned tx and signing data for a given chain and key, signs it using the correct binary (eg. `gaiad tx sign unsigned.json ...`), and pushes the signature back to the directory
 - `multisig list` lists the files in a directory so you can see who has signed
@@ -19,6 +26,10 @@ Quick summary, with much more below:
 Everything generally tries to clean up after itself, but files are created and
 removed from the present working directory, so you may want to be somewhere
 clean.
+
+Note that s3 doesn't actually have directories, everything is just a file in the
+bucket, but files can be prefixed with what looks like directory paths. So the
+appearance of a "directory" is just an empty object with a name ending in a `/`.
 
 ## Install
 
@@ -41,7 +52,8 @@ for the list of commands and options.
 ## Configure
 
 `multisig` uses a simple `config.toml` file expected to be found in the present working directory. 
-A documented example file is provided in `data/config.toml`.
+A documented example file is provided in `data/config.toml`. Copy this example
+file to your current directory and modify it as necessary.
 
 You will need to:
 
@@ -51,9 +63,22 @@ You will need to:
 
 ### Configure your AWS Bucket
 
-You will need an s3 bucket and AWS credentials with read and write access to it.
+Each user will need an AWS Access Key ID and Secret Access Key that gives them
+read/write access to the bucket.
 
-You can setup an AWS IAM Policy that restricts access to a single bucket and attach
+In the `[aws]` section of the multisig config, each user must set the  `bucket`, `pub`, and `priv` fields 
+with the bucket name, Access Key ID, and Secret Access Key.
+
+```
+# aws credentials
+[aws]
+bucket = "<bucketName>"         # s3 bucket name
+pub = "<access key id>"         # Access Key ID
+priv = "<secret access key>"   # Secret Access Key
+```
+
+
+If you are setting up the bucket for the first time, you can create an AWS IAM Policy that restricts access to a single bucket and attach
 it to a User or Group:
 
 ```
@@ -77,11 +102,6 @@ it to a User or Group:
 ```
 
 See [Source](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html).
-
-Each user can be given a shared or personal Access Key ID and Secret Access Key for accessing the bucket.
-
-In the `[aws]` section of the multisig config, update the  `bucket`, `pub`, and `priv` fields 
-with the bucket name, Access Key ID, and Secret Access Key.
 
 ### Configure you Keys
 
@@ -135,6 +155,7 @@ Commands:
 - List
 - Sign
 - Broadcast
+- Raw
 
 ### Generate
 
@@ -157,6 +178,12 @@ To see the files in the directory of a chain and key:
 multisig list <chain name> <key name> 
 ```
 
+To list all the files in the bucket:
+
+```
+multisig list --all
+```
+
 ### Sign
 
 To sign a tx:
@@ -177,26 +204,33 @@ multisig sign --node <node address> <chain name> <key name>
 
 Where the `--node` flag can be used to overwrite what's in the config file.
 
+### Raw
+
+There are a set of `raw` subcommands for direct manipulation of bucket objects.
+This is mostly for debugging purposes and generally should not need to be used.
+See `multisig raw --help` and the help menu for each subcommand for more info.
+
 ## TODO
 
 High Priority
 
-- test suite that spins up some local nodes and multisigs for testing
+- `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
+- `broadcast` should log the tx once its complete (maybe a log file
+  in each top level chain directory?) - should include the key, tx id, and the description 
 - move to cobra (whoops!). UX showstoppers in urfave:
     - flags have to come before args ?! see https://github.com/urfave/cli/issues/427
     - flags cant have short form aliases
-- add `multisig raw` CRUD commands for direct file manipulation in the s3 bucket (eg. for debuging/fixing)
-    - should also be able to create directories from the CLI
-- `list` command shoud be able to show more detail, eg. which chain/key pairs exist
 - add a command for porting a multisig from one binary's keystore to another
   (ie. decoding the bech32 for each key and running `keys add` on the new
   binary)
-- `broadcast` should log txs somewhere once they're complete (maybe a log file
-  in each top level chain directory?) - should include the key, tx id, and a short description of the tx
+- test suite that spins up some local nodes and multisigs for testing
+- allow multiple txs to be started at a time per chain/key pair - this will take
+  some refactoring
+- proper error handling - sometimes we just print a message and return no error,
+  but then the exit code is still 0
 
 Lower Priority
 
-- allow multiple txs to be started at a time per chain/key pair
 - Use the https://github.com/cosmos/chain-registry for configuring chains instead of the
   config.toml ?
 - other backends besides s3 ?
