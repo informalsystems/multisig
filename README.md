@@ -164,11 +164,17 @@ Generate a `unsigned.json` tx as you normally would for the given multisig addre
 Then run
 
 ```
-multisig generate --tx unsigned.json --sequence <sequence number for account> --account <account number> <chain name> <key name>
+multisig generate --tx unsigned.json --node <node address> <chain name> <key name>
 ```
 
 This will push the `unsigned.json` to the directory in the s3 bucket for the specified chain and key (ie. `/<chain name>/<key name>`). 
-It will also push a file called `signdata.json` containing the account number, sequence number, and chain ID.
+It will also fetch the account number and sequence number from the given `--node <node address>`,
+and push a file to the bucket called `signdata.json` containing the account number, sequence number, and chain ID.
+The sequence and account number can be overwriten or specified without a node
+using the `--sequence` and `--account` flags
+
+Note if you use `--node` its shelling out to the `<binary> query account <address>`
+command and parsing the response.
 
 ### List
 
@@ -183,6 +189,25 @@ To list all the files in the bucket:
 ```
 multisig list --all
 ```
+
+Example output:
+
+```
+$ multisig list --all
+cosmos/
+cosmos/mycorp-main/
+cosmos/mycorp-validator/
+juno/
+juno/mycorp-main/
+osmosis/
+osmosis/mycorp-main/
+osmosis/mycorp-main/eb.json
+osmosis/mycorp-main/signdata.json
+osmosis/mycorp-main/unsigned.json
+```
+
+This shows all the chain/key pairs that have been setup. All of them are empty
+except `osmosis/mycorp-main` which has one signature (`eb.json`).
 
 ### Sign
 
@@ -215,11 +240,12 @@ See `multisig raw --help` and the help menu for each subcommand for more info.
 High Priority
 
 - `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
+- `generate` should use the `node` field from the config and allow overriding
+  with the `--node` flag
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
 - move to cobra (whoops!). UX showstoppers in urfave:
     - flags have to come before args ?! see https://github.com/urfave/cli/issues/427
-    - flags cant have short form aliases
 - add a command for porting a multisig from one binary's keystore to another
   (ie. decoding the bech32 for each key and running `keys add` on the new
   binary)
@@ -228,9 +254,13 @@ High Priority
   some refactoring
 - proper error handling - sometimes we just print a message and return no error,
   but then the exit code is still 0
+- make tx and query response parsing more robust (currently shelling out to CLI
+  commands - should we be using the REST server ? maybe 26657 nodes are more
+  available than rest ? )
 
 Lower Priority
 
+- make aws bucket region configurable
 - Use the https://github.com/cosmos/chain-registry for configuring chains instead of the
   config.toml ?
 - other backends besides s3 ?
