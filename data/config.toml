@@ -1,0 +1,53 @@
+
+
+########################
+# General configuration
+########################
+
+
+# username, eg. initials - for naming your signatures
+user = "eb" 
+
+# gaiad uses "os" by default, but I use "test"
+keyringbackend = "os" 
+
+# aws credentials
+[aws]
+bucket = "TODO" # s3 bucket name
+pub = "TODO"    # Access Key ID
+priv = "TODO"   # Secret Access Key
+
+########################
+# Multisig keys we want to sign with (potentially on many chains!)
+########################
+
+[[keys]]
+name = "TODO"       # name of this multisig key - same for everyone
+address = "TODO"    # bech32 address of the key - same for everyone
+localname = "TODO"  # name of this key in a signer's local keystore - can be different for everyone
+
+
+[[keys]]
+name = "TODO"       # name of this multisig key - same for everyone
+address = "TODO"    # bech32 address of the key - same for everyone
+localname = "TODO"  # name of this key in a signer's local keystore - can be different for everyone
+
+
+########################
+# Chains we sign for
+########################
+
+[[chains]]
+name = "cosmos"                 # name of the chain
+binary = "gaiad"                # name of binary
+prefix = "cosmos"               # bech32 prefix
+id = "cosmoshub-4"              # chain-id
+node = "http://localhost:26657" # a synced node - only needed for `generate` and `broadcast` commands
+
+
+[[chains]]
+name = "osmosis"      # name of the chain
+binary = "osmosisd"   # name of binary
+prefix = "osmo"       # bech32 prefix
+id = "osmosis-1"      # chain-id
+
