@@ -766,6 +766,7 @@ func cmdBroadcast(c *cli.Context) error {
 	}
 
 	// broadcast tx
+	// TODO: use --broadcast-mode block ?
 	cmdArgs = []string{"tx", "broadcast", signedJSON, "--node", nodeAddress}
 	cmd = exec.Command(binary, cmdArgs...)
 	b, err = cmd.CombinedOutput()

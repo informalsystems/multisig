@@ -239,13 +239,20 @@ See `multisig raw --help` and the help menu for each subcommand for more info.
 
 High Priority
 
-- `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
+- `raw down` should also be able to download a whole folder
+- add denoms to chains and have `generate` validate txs are using correct denoms
 - `generate` should use the `node` field from the config and allow overriding
   with the `--node` flag
+- `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
 - move to cobra (whoops!). UX showstoppers in urfave:
     - flags have to come before args ?! see https://github.com/urfave/cli/issues/427
+- need a way to assign local key names (`--from`) to keys (possibly on a per-chain basis, eek)
+- use `--broadcast-mode block` ?
+
+Mid Priority
+
 - add a command for porting a multisig from one binary's keystore to another
   (ie. decoding the bech32 for each key and running `keys add` on the new
   binary)
@@ -257,6 +264,7 @@ High Priority
 - make tx and query response parsing more robust (currently shelling out to CLI
   commands - should we be using the REST server ? maybe 26657 nodes are more
   available than rest ? )
+
 
 Lower Priority
 
