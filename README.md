@@ -224,7 +224,7 @@ Where `--from` is the name of the key in your local keystore, the same as you wo
 To assemble the signed tx and broadcast it, run:
 
 ```
-multisig sign --node <node address> <chain name> <key name> 
+multisig broadcast --node <node address> <chain name> <key name> 
 ```
 
 Where the `--node` flag can be used to overwrite what's in the config file.
