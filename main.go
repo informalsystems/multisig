@@ -130,6 +130,12 @@ func main() {
 				// Action:      cmdRaw,
 				Subcommands: []*cli.Command{
 					{
+						Name:      "bech32",
+						Usage:     "convert a bech32 string to a different prefix",
+						ArgsUsage: "<bech32 string> <new prefix>",
+						Action:    cmdRawBech32,
+					},
+					{
 						Name:      "cat",
 						Usage:     "dump the contents of all files in a directory",
 						ArgsUsage: "<chain name> <key name>",
@@ -170,6 +176,24 @@ func main() {
 		log.Fatal(err)
 	}
 
+}
+
+func cmdRawBech32(c *cli.Context) error {
+	args := c.Args()
+	first, tail := args.First(), args.Tail()
+	if len(tail) < 1 {
+		fmt.Println("must specify args:", c.Command.ArgsUsage)
+		return nil
+	}
+
+	bech32String := first
+	bech32Prefix := tail[0]
+	newbech32String, err := bech32ify(bech32String, bech32Prefix)
+	if err != nil {
+		return err
+	}
+	fmt.Println(newbech32String)
+	return nil
 }
 
 // copy a local file to the bucket
@@ -222,6 +246,8 @@ func cmdRawDown(c *cli.Context) error {
 		return err
 	}
 	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+
+	// TODO: if remote ends in /, fetch the whole directory
 
 	// download it
 	dir := filepath.Dir(remote)

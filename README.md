@@ -250,6 +250,7 @@ High Priority
     - flags have to come before args ?! see https://github.com/urfave/cli/issues/427
 - need a way to assign local key names (`--from`) to keys (possibly on a per-chain basis, eek)
 - use `--broadcast-mode block` ?
+- new command to show unclaimed rewards for all addresses on all networks
 
 Mid Priority
 
