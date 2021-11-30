@@ -70,7 +70,7 @@ func main() {
 					&cli.StringFlag{
 						Name:    "node",
 						Aliases: []string{"n"},
-						Value:   "http://localhost:26657",
+						Value:   "",
 						Usage:   "tendermint rpc node to get sequence and account number from",
 					},
 				},
@@ -247,9 +247,19 @@ func cmdRawDown(c *cli.Context) error {
 	}
 	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
 
-	// TODO: if remote ends in /, fetch the whole directory
+	// if remote ends in /, fetch the whole directory and return
+	if strings.HasSuffix(remote, "/") {
+		if err := os.Mkdir(local, 0777); err != nil {
+			return err
+		}
+		if err := os.Chdir(local); err != nil {
+			return err
+		}
+		_, err = fetchFilesInDir(sess, conf.AWS.Bucket, remote)
+		return err
+	}
 
-	// download it
+	// otherwise, just download the one file
 	dir := filepath.Dir(remote)
 	fileName := filepath.Base(remote)
 	file, err := awsDownload(sess, conf.AWS.Bucket, dir, fileName)
@@ -287,24 +297,9 @@ func cmdRawCat(c *cli.Context) error {
 
 	txDir := filepath.Join(chainName, keyName)
 
-	svc := s3.New(sess)
-
-	// list all items in bucket
-	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
+	files, err := fetchFilesInDir(sess, conf.AWS.Bucket, txDir)
 	if err != nil {
 		return err
-	}
-
-	// get only those in our folder
-	files := []string{}
-	for _, item := range resp.Contents {
-		key := *item.Key
-		keyDir := filepath.Dir(key)
-		keyBase := strings.TrimPrefix(key, keyDir)
-		keyBase = strings.TrimPrefix(keyBase, "/")
-		if keyDir == txDir && keyBase != "" {
-			files = append(files, keyBase)
-		}
 	}
 
 	if len(files) == 0 {
@@ -314,12 +309,6 @@ func cmdRawCat(c *cli.Context) error {
 
 	fmt.Println("") // for spacing
 	for _, f := range files {
-		// download all files in folder
-		_, err := awsDownload(sess, conf.AWS.Bucket, txDir, f)
-		if err != nil {
-			return err
-		}
-
 		// cat the file
 		b, err := ioutil.ReadFile(f)
 		if err != nil {
@@ -405,11 +394,16 @@ func cmdGenerate(c *cli.Context) error {
 	// either from a node and/or from CLI
 	//------------------------------------
 
-	// if account or sequence arent set, the node must be set
+	nodeAddress := chain.Node
+	if c.String("node") != "" {
+		nodeAddress = c.String("node")
+	}
+
+	// if account or sequence arent set, the node must be set in the config or CLI
 	noAccOrSeq := !(c.IsSet("account") || c.IsSet("sequence"))
-	noNode := !c.IsSet("node")
+	noNode := nodeAddress == ""
 	if noAccOrSeq && noNode {
-		fmt.Println("if the --account and --sequence are not provided, a --node must be specified")
+		fmt.Println("if the --account and --sequence are not provided, a node must be specified in the config or with --node")
 		return nil
 	}
 
@@ -419,16 +413,14 @@ func cmdGenerate(c *cli.Context) error {
 	)
 
 	// if theres a node, get the acc and seq from it
-	if c.IsSet("node") {
-
+	if !noNode {
 		var err error
 		binary := chain.Binary
 		address, err := bech32ify(key.Address, chain.Prefix)
 		if err != nil {
 			return err
 		}
-		node := c.String("node")
-		accountNum, sequenceNum, err = getAccSeq(binary, address, node)
+		accountNum, sequenceNum, err = getAccSeq(binary, address, nodeAddress)
 		if err != nil {
 			return err
 		}
@@ -503,9 +495,18 @@ func listAll(c *cli.Context) error {
 		files = append(files, key)
 	}
 
+	last := ""
+	sep := "---------------------------------"
+	fmt.Println(sep)
 	for _, f := range files {
+		fDir := filepath.Dir(f)
+		if fDir != filepath.Dir(last) && !strings.HasPrefix(fDir, last) {
+			fmt.Println(sep)
+		}
 		fmt.Println(f)
+		last = f
 	}
+	fmt.Println(sep)
 
 	return nil
 

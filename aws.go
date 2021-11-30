@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -79,4 +80,42 @@ func awsDelete(sess *session.Session, bucketName, objName string) error {
 		Key:    aws.String(objName),
 	})
 	return err
+}
+
+// download all files in the dir and return list of file names
+func fetchFilesInDir(sess *session.Session, bucketName, dirPath string) ([]string, error) {
+	svc := s3.New(sess)
+
+	// list all items in bucket
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(bucketName)})
+	if err != nil {
+		return nil, err
+	}
+
+	dirPath = strings.TrimSuffix(dirPath, "/")
+
+	// get only those in our folder
+	files := []string{}
+	for _, item := range resp.Contents {
+		key := *item.Key
+		keyDir := filepath.Dir(key)
+		keyBase := strings.TrimPrefix(key, keyDir)
+		keyBase = strings.TrimPrefix(keyBase, "/")
+		if keyDir == dirPath && keyBase != "" {
+			files = append(files, keyBase)
+		}
+	}
+
+	if len(files) == 0 {
+		return []string{}, nil
+	}
+
+	for _, f := range files {
+		// download all files in folder
+		_, err := awsDownload(sess, bucketName, dirPath, f)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return files, nil
 }

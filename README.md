@@ -239,10 +239,7 @@ See `multisig raw --help` and the help menu for each subcommand for more info.
 
 High Priority
 
-- `raw down` should also be able to download a whole folder
 - add denoms to chains and have `generate` validate txs are using correct denoms
-- `generate` should use the `node` field from the config and allow overriding
-  with the `--node` flag
 - `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
