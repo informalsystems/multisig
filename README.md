@@ -10,6 +10,8 @@ Cosmos-SDK](https://github.com/cosmos/cosmos-sdk/issues/5661) for discussion
 about multisig handling. This tool is a multi-chain/multi-key solution to that problem using S3
 buckets.
 
+See the [TODO](#todo) list at the bottom of this document for work that needs to be done (please open an issue if you intend to work on something!) :)
+
 ## How it Works
 
 Quick summary, with much more below:
