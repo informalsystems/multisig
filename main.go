@@ -149,7 +149,8 @@ func main() {
 					},
 					{
 						Name:      "down",
-						Usage:     "download a file from the s3 bucket",
+						Usage:     "download a file or directory from the s3 bucket",
+						UsageText: "if the path ends in a '/' it will attempt to download all files in that directory",
 						ArgsUsage: "<source filepath> <destination filepath>",
 						Action:    cmdRawDown,
 					},
@@ -399,8 +400,11 @@ func cmdGenerate(c *cli.Context) error {
 		nodeAddress = c.String("node")
 	}
 
-	// if account or sequence arent set, the node must be set in the config or CLI
-	noAccOrSeq := !(c.IsSet("account") || c.IsSet("sequence"))
+	isAccSet := c.IsSet("account")
+	isSeqSet := c.IsSet("sequence")
+
+	// if both account and sequence are not set, the node must be set in the config or CLI
+	noAccOrSeq := !(isAccSet && isSeqSet)
 	noNode := nodeAddress == ""
 	if noAccOrSeq && noNode {
 		fmt.Println("if the --account and --sequence are not provided, a node must be specified in the config or with --node")
@@ -412,8 +416,8 @@ func cmdGenerate(c *cli.Context) error {
 		sequenceNum int
 	)
 
-	// if theres a node, get the acc and seq from it
-	if !noNode {
+	// if both account and sequence are not set, get them from the node
+	if noAccOrSeq {
 		var err error
 		binary := chain.Binary
 		address, err := bech32ify(key.Address, chain.Prefix)
@@ -427,10 +431,10 @@ func cmdGenerate(c *cli.Context) error {
 	}
 
 	// if the acc or seq flags are set, overwrite the node
-	if c.IsSet("account") {
+	if isAccSet {
 		accountNum = c.Int("account")
 	}
-	if c.IsSet("sequence") {
+	if isSeqSet {
 		sequenceNum = c.Int("sequence")
 	}
 
