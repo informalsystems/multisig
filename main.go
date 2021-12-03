@@ -28,6 +28,8 @@ var (
 	unsignedJSON = "unsigned.json"
 	signedJSON   = "signed.json"
 	signDataJSON = "signdata.json"
+
+	defaultBucketRegion = "ca-central-1"
 )
 
 // Data we need for signers to sign a tx (eg. without access to a node)
@@ -213,7 +215,7 @@ func cmdRawUp(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 
 	// read the local file
 	localBytes, err := ioutil.ReadFile(local)
@@ -224,7 +226,7 @@ func cmdRawUp(c *cli.Context) error {
 	// upload it
 	dir := filepath.Dir(remote)
 	fileName := filepath.Base(remote)
-	if err := awsUpload(sess, conf.AWS.Bucket, dir, fileName, localBytes); err != nil {
+	if err := awsUpload(sess, conf.AWS, dir, fileName, localBytes); err != nil {
 		return err
 	}
 	return nil
@@ -246,7 +248,7 @@ func cmdRawDown(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 
 	// if remote ends in /, fetch the whole directory and return
 	if strings.HasSuffix(remote, "/") {
@@ -256,14 +258,14 @@ func cmdRawDown(c *cli.Context) error {
 		if err := os.Chdir(local); err != nil {
 			return err
 		}
-		_, err = fetchFilesInDir(sess, conf.AWS.Bucket, remote)
+		_, err = awsFetchFilesInDir(sess, conf.AWS, remote)
 		return err
 	}
 
 	// otherwise, just download the one file
 	dir := filepath.Dir(remote)
 	fileName := filepath.Base(remote)
-	file, err := awsDownload(sess, conf.AWS.Bucket, dir, fileName)
+	file, err := awsDownload(sess, conf.AWS, dir, fileName)
 	if err != nil {
 		return err
 	}
@@ -294,11 +296,11 @@ func cmdRawCat(c *cli.Context) error {
 		return err
 	}
 
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 
 	txDir := filepath.Join(chainName, keyName)
 
-	files, err := fetchFilesInDir(sess, conf.AWS.Bucket, txDir)
+	files, err := awsFetchFilesInDir(sess, conf.AWS, txDir)
 	if err != nil {
 		return err
 	}
@@ -339,8 +341,8 @@ func cmdRawDelete(c *cli.Context) error {
 		return err
 	}
 
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
-	awsDelete(sess, conf.AWS.Bucket, filePath)
+	sess := awsSession(conf.AWS)
+	awsDelete(sess, conf.AWS, filePath)
 	return nil
 }
 
@@ -361,8 +363,8 @@ func cmdRawMkdir(c *cli.Context) error {
 		return err
 	}
 
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
-	awsMkdir(sess, conf.AWS.Bucket, dirName)
+	sess := awsSession(conf.AWS)
+	awsMkdir(sess, conf.AWS, dirName)
 	return nil
 }
 
@@ -457,15 +459,15 @@ func cmdGenerate(c *cli.Context) error {
 	}
 	txDir := filepath.Join(chainName, keyName)
 
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 
 	// upload the unsigned tx
-	if err := awsUpload(sess, conf.AWS.Bucket, txDir, unsignedJSON, unsignedBytes); err != nil {
+	if err := awsUpload(sess, conf.AWS, txDir, unsignedJSON, unsignedBytes); err != nil {
 		return err
 	}
 
 	// upload the sign data
-	if err := awsUpload(sess, conf.AWS.Bucket, txDir, signDataJSON, signDataBytes); err != nil {
+	if err := awsUpload(sess, conf.AWS, txDir, signDataJSON, signDataBytes); err != nil {
 		return err
 	}
 
@@ -484,7 +486,7 @@ func listAll(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 	svc := s3.New(sess)
 
 	// list all items in bucket
@@ -530,7 +532,7 @@ func listDir(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 	svc := s3.New(sess)
 	filePath := filepath.Join(chainName, keyName)
 
@@ -592,7 +594,7 @@ func cmdSign(c *cli.Context) error {
 
 	txDir := filepath.Join(chainName, keyName)
 
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 	downloader := s3manager.NewDownloader(sess)
 
 	// Make a file for the unsigned.json, download it
@@ -679,7 +681,7 @@ func cmdSign(c *cli.Context) error {
 	fmt.Println(string(b))
 
 	// upload the signature as <user>.json
-	if err := awsUpload(sess, conf.AWS.Bucket, txDir, fmt.Sprintf("%s.json", user), b); err != nil {
+	if err := awsUpload(sess, conf.AWS, txDir, fmt.Sprintf("%s.json", user), b); err != nil {
 		return err
 	}
 
@@ -711,7 +713,7 @@ func cmdBroadcast(c *cli.Context) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	sess := awsSession(conf.AWS.Pub, conf.AWS.Priv)
+	sess := awsSession(conf.AWS)
 	svc := s3.New(sess)
 	txDir := filepath.Join(chainName, keyName)
 
@@ -732,7 +734,7 @@ func cmdBroadcast(c *cli.Context) error {
 	for _, f := range fileNames {
 		fmt.Println(f)
 
-		_, err := awsDownload(sess, conf.AWS.Bucket, txDir, f)
+		_, err := awsDownload(sess, conf.AWS, txDir, f)
 		if err != nil {
 			return err
 		}

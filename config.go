@@ -26,9 +26,10 @@ type Key struct {
 
 // Credentials for AWS
 type AWS struct {
-	Bucket string
-	Pub    string
-	Priv   string
+	Bucket       string
+	BucketRegion string
+	Pub          string
+	Priv         string
 }
 
 // Config file
@@ -71,6 +72,11 @@ func loadConfig(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if c.AWS.BucketRegion == "" {
+		c.AWS.BucketRegion = defaultBucketRegion
+	}
+
 	return c, nil
 }
 

@@ -13,9 +13,10 @@ keyringbackend = "os"
 
 # aws credentials
 [aws]
-bucket = "TODO" # s3 bucket name
-pub = "TODO"    # Access Key ID
-priv = "TODO"   # Secret Access Key
+bucket = "TODO"        # s3 bucket name
+bucketregion = "TODO"  # aws region
+pub = "TODO"           # Access Key ID
+priv = "TODO"          # Secret Access Key
 
 ########################
 # Multisig keys we want to sign with (potentially on many chains!)

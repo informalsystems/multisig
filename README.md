@@ -68,17 +68,18 @@ You will need to:
 Each user will need an AWS Access Key ID and Secret Access Key that gives them
 read/write access to the bucket.
 
-In the `[aws]` section of the multisig config, each user must set the  `bucket`, `pub`, and `priv` fields 
-with the bucket name, Access Key ID, and Secret Access Key.
+In the `[aws]` section of the multisig config, each user must set the  `bucket`, 
+`bucketregion`, `pub`, and `priv` fields 
+with the bucket name, AWS region of the bucket, Access Key ID, and Secret Access Key.
 
 ```
 # aws credentials
 [aws]
 bucket = "<bucketName>"         # s3 bucket name
+bucketregion = "<bucketRegion>" # aws bucket region
 pub = "<access key id>"         # Access Key ID
-priv = "<secret access key>"   # Secret Access Key
+priv = "<secret access key>"    # Secret Access Key
 ```
-
 
 If you are setting up the bucket for the first time, you can create an AWS IAM Policy that restricts access to a single bucket and attach
 it to a User or Group:
@@ -268,7 +269,6 @@ Mid Priority
 
 Lower Priority
 
-- make aws bucket region configurable
 - Use the https://github.com/cosmos/chain-registry for configuring chains instead of the
   config.toml ?
 - other backends besides s3 ?
