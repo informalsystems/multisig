@@ -1,6 +1,11 @@
 # Multisig
 
+Disclaimer: Use at your risk, responsibility for damages (if any) to anyone
+resulting from the use of this software rest entirely with the user. The author
+is not responsible for any damage that its use could cause.
+
 WARNING: this tool is very new and may break at any time, you probably shouldn't use it!
+If you do use it, its best to do so from a clean directory and with a clean S3 bucket.
 
 This is a tool for managing multisig txs with Cosmos-SDK based binaries and an
 AWS S3 bucket.
@@ -27,7 +32,7 @@ Quick summary, with much more below:
 
 Everything generally tries to clean up after itself, but files are created and
 removed from the present working directory, so you may want to be somewhere
-clean.
+clean. You can also use the `multisig raw` commands to cleanup the s3 bucket.
 
 Note that s3 doesn't actually have directories, everything is just a file in the
 bucket, but files can be prefixed with what looks like directory paths. So the

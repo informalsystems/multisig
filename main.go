@@ -727,7 +727,14 @@ func cmdBroadcast(c *cli.Context) error {
 	for _, item := range resp.Contents {
 		itemKey := *item.Key
 		if strings.HasPrefix(itemKey, txDir) && !strings.HasSuffix(itemKey, "/") {
-			fileNames = append(fileNames, filepath.Base(itemKey))
+			base := filepath.Base(itemKey)
+
+			// sanity check
+			if len(base) == 0 {
+				return fmt.Errorf("%s had empty base", itemKey)
+			}
+
+			fileNames = append(fileNames, base)
 		}
 	}
 
