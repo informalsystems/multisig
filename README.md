@@ -248,6 +248,11 @@ See `multisig raw --help` and the help menu for each subcommand for more info.
 High Priority
 
 - add denoms to chains and have `generate` validate txs are using correct denoms
+- `generate` should require confirmation when pushing a new file if there is
+  already data there
+- add multisig threshold to the config and ensure theres enough signatures
+  before broadcasting
+- convenience commands to generate voting and reward withdrawal txs 
 - `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
@@ -259,6 +264,7 @@ High Priority
 
 Mid Priority
 
+- simulate tx to estimate gas
 - add a command for porting a multisig from one binary's keystore to another
   (ie. decoding the bech32 for each key and running `keys add` on the new
   binary)
