@@ -247,6 +247,9 @@ See `multisig raw --help` and the help menu for each subcommand for more info.
 
 High Priority
 
+- move to cobra (whoops!). UX showstoppers in urfave:
+    - flags have to come before args ?! see https://github.com/urfave/cli/issues/427
+- made config globally accessible eg. in `~/.multisig/config.toml`
 - add denoms to chains and have `generate` validate txs are using correct denoms
 - `generate` should require confirmation when pushing a new file if there is
   already data there
@@ -256,8 +259,6 @@ High Priority
 - `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
-- move to cobra (whoops!). UX showstoppers in urfave:
-    - flags have to come before args ?! see https://github.com/urfave/cli/issues/427
 - need a way to assign local key names (`--from`) to keys (possibly on a per-chain basis, eek)
 - use `--broadcast-mode block` ?
 - new command to show unclaimed rewards for all addresses on all networks
