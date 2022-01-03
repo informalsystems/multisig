@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/urfave/cli/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -76,7 +77,7 @@ func main() {
 						Usage:   "tendermint rpc node to get sequence and account number from",
 					},
 				},
-				Action:    cmdGenerate,
+				//Action:    cmdGenerate,
 				ArgsUsage: "<chain name> <key name>",
 			},
 			{
@@ -94,9 +95,9 @@ func main() {
 				},
 			},
 			{
-				Name:      "list",
-				Usage:     "list items in a directory",
-				Action:    cmdList,
+				Name:  "list",
+				Usage: "list items in a directory",
+				// Action:    cmdList,
 				ArgsUsage: "<chain name> <key name>",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
@@ -173,12 +174,16 @@ func main() {
 			},
 		},
 	}
-
-	err := app.Run(os.Args)
+	_ = app
+	/*
+		err := app.Run(os.Args)
+		if err != nil {
+			log.Fatal(err)
+		}*/
+	err := rootCmd.Execute()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func cmdRawBech32(c *cli.Context) error {
@@ -368,15 +373,9 @@ func cmdRawMkdir(c *cli.Context) error {
 	return nil
 }
 
-func cmdGenerate(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-	chainName := first
-	keyName := tail[0]
+func cmdGenerate(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -398,12 +397,12 @@ func cmdGenerate(c *cli.Context) error {
 	//------------------------------------
 
 	nodeAddress := chain.Node
-	if c.String("node") != "" {
-		nodeAddress = c.String("node")
+	if flagNode != "" {
+		nodeAddress = flagNode
 	}
 
-	isAccSet := c.IsSet("account")
-	isSeqSet := c.IsSet("sequence")
+	isAccSet := cmd.Flags().Changed("account")
+	isSeqSet := cmd.Flags().Changed("sequence")
 
 	// if both account and sequence are not set, the node must be set in the config or CLI
 	noAccOrSeq := !(isAccSet && isSeqSet)
@@ -434,14 +433,14 @@ func cmdGenerate(c *cli.Context) error {
 
 	// if the acc or seq flags are set, overwrite the node
 	if isAccSet {
-		accountNum = c.Int("account")
+		accountNum = flagAccount
 	}
 	if isSeqSet {
-		sequenceNum = c.Int("sequence")
+		sequenceNum = flagSequence
 	}
 
 	// read the unsigned tx file
-	txFile := c.String("tx")
+	txFile := flagTx
 	unsignedBytes, err := ioutil.ReadFile(txFile)
 	if err != nil {
 		return err
@@ -474,14 +473,14 @@ func cmdGenerate(c *cli.Context) error {
 	return nil
 }
 
-func cmdList(c *cli.Context) error {
-	if c.Bool("all") {
-		return listAll(c)
+func cmdList(cmd *cobra.Command, args []string) error {
+	if flagAll {
+		return listAll()
 	}
-	return listDir(c)
+	return listDir(args)
 }
 
-func listAll(c *cli.Context) error {
+func listAll() error {
 	conf, err := loadConfig(configFile)
 	if err != nil {
 		return err
@@ -518,15 +517,13 @@ func listAll(c *cli.Context) error {
 
 }
 
-func listDir(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
+func listDir(args []string) error {
+	if len(args) != 2 {
+		fmt.Println("must specify args: <chain name> <key name>")
 		return nil
 	}
-	chainName := first
-	keyName := tail[0]
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
