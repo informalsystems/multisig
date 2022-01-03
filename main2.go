@@ -23,13 +23,25 @@ var signCmd = &cobra.Command{
 	Use:   "sign <chain name> <key name>",
 	Short: "generate a new unsigned tx",
 	Args:  cobra.ExactArgs(2),
-	// RunE:  cmdSign,
+	RunE:  cmdSign,
 }
 
 var listCmd = &cobra.Command{
 	Use:   "list <chain name> <key name>",
 	Short: "list items in a directory",
 	RunE:  cmdList,
+}
+
+var broadcastCmd = &cobra.Command{
+	Use:   "broadcast <chain name> <key name>",
+	Short: "broadcast a tx",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdBroadcast,
+}
+
+var rawCmd = &cobra.Command{
+	Use:   "raw <cmd>",
+	Short: "raw operations on the s3 bucket",
 }
 
 var (
@@ -44,8 +56,9 @@ var (
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
-	//	rootCmd.AddCommand(signCmd)
+	rootCmd.AddCommand(signCmd)
 	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(broadcastCmd)
 
 	generateCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
 	generateCmd.MarkFlagRequired("tx")
@@ -58,4 +71,7 @@ func init() {
 	signCmd.MarkFlagRequired("from")
 
 	listCmd.Flags().BoolVarP(&flagAll, "all", "a", false, "list files for all chains and keys")
+
+	broadcastCmd.Flags().StringVarP(&flagNode, "node", "n", "", "node address to broadcast too. flag overrides config")
+	// broacastCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "description of the tx to be logged")
 }

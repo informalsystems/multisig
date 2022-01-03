@@ -81,9 +81,9 @@ func main() {
 				ArgsUsage: "<chain name> <key name>",
 			},
 			{
-				Name:      "sign",
-				Usage:     "sign a tx",
-				Action:    cmdSign,
+				Name:  "sign",
+				Usage: "sign a tx",
+				//Action:    cmdSign,
 				ArgsUsage: "<chain name> <key name>",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
@@ -108,9 +108,9 @@ func main() {
 				},
 			},
 			{
-				Name:      "broadcast",
-				Usage:     "broadcast a tx",
-				Action:    cmdBroadcast,
+				Name:  "broadcast",
+				Usage: "broadcast a tx",
+				//Action:    cmdBroadcast,
 				ArgsUsage: "<chain name> <key name>",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
@@ -555,7 +555,7 @@ func listDir(args []string) error {
 
 }
 
-func cmdSign(c *cli.Context) error {
+func cmdSign(cobraCmd *cobra.Command, args []string) error {
 	/*
 		fetch the unsigned tx and signdata
 		display the tx and sign data and ask for confirmation from the user
@@ -563,16 +563,10 @@ func cmdSign(c *cli.Context) error {
 		upload the signature to the right bucket
 	*/
 
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-	chainName := first
-	keyName := tail[0]
+	chainName := args[0]
+	keyName := args[1]
 
-	from := c.String("from")
+	from := flagFrom
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -685,15 +679,9 @@ func cmdSign(c *cli.Context) error {
 	return nil
 }
 
-func cmdBroadcast(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-	chainName := first
-	keyName := tail[0]
+func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -798,8 +786,8 @@ func cmdBroadcast(c *cli.Context) error {
 	}
 
 	nodeAddress := chain.Node
-	if c.String("node") != "" {
-		nodeAddress = c.String("node")
+	if flagNode != "" {
+		nodeAddress = flagNode
 	}
 
 	// broadcast tx
