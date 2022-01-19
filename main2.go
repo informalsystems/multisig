@@ -44,6 +44,50 @@ var rawCmd = &cobra.Command{
 	Short: "raw operations on the s3 bucket",
 }
 
+var rawBech32Cmd = &cobra.Command{
+	Use:   "bech32 <bech32 string> <new prefix>",
+	Short: "convert a bech32 string to a different prefix",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawBech32,
+}
+
+var rawCatCmd = &cobra.Command{
+	Use:   "cat <chain name> <key name>",
+	Short: "dump the contents of all files in a directory",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawCat,
+}
+
+var rawUpCmd = &cobra.Command{
+	Use:   "up <source filepath> <destination filepath>",
+	Short: "upload a local file to a path in the s3 bucket",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawUp,
+}
+
+var rawDownCmd = &cobra.Command{
+	Use:   "down <source filepath> <destination filepath>",
+	Short: "download a file or directory from the s3 bucket",
+	Long:  "if the path ends in a '/' it will attempt to download all files in that directory",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdRawDown,
+}
+
+var rawMkdirCmd = &cobra.Command{
+	Use:   "mkdir <directory path>",
+	Short: "create a directory in the s3 bucket - must end with a '/'",
+	Long:  "if the path ends in a '/' it will attempt to download all files in that directory",
+	Args:  cobra.ExactArgs(1),
+	RunE:  cmdRawMkdir,
+}
+
+var rawDeleteCmd = &cobra.Command{
+	Use:   "delete <filepath>",
+	Short: "delete a file from the s3 bucket",
+	Args:  cobra.ExactArgs(1),
+	RunE:  cmdRawDelete,
+}
+
 var (
 	flagTx          string
 	flagSequence    int
@@ -59,10 +103,17 @@ func init() {
 	rootCmd.AddCommand(signCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(broadcastCmd)
+	rootCmd.AddCommand(rawCmd)
+
+	rawCmd.AddCommand(rawBech32Cmd)
+	rawCmd.AddCommand(rawCatCmd)
+	rawCmd.AddCommand(rawUpCmd)
+	rawCmd.AddCommand(rawDownCmd)
+	rawCmd.AddCommand(rawMkdirCmd)
+	rawCmd.AddCommand(rawDeleteCmd)
 
 	generateCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
 	generateCmd.MarkFlagRequired("tx")
-
 	generateCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
 	generateCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
 	generateCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")

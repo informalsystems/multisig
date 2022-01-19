@@ -136,39 +136,39 @@ func main() {
 						Name:      "bech32",
 						Usage:     "convert a bech32 string to a different prefix",
 						ArgsUsage: "<bech32 string> <new prefix>",
-						Action:    cmdRawBech32,
+						//Action:    cmdRawBech32,
 					},
 					{
 						Name:      "cat",
 						Usage:     "dump the contents of all files in a directory",
 						ArgsUsage: "<chain name> <key name>",
-						Action:    cmdRawCat,
+						//Action:    cmdRawCat,
 					},
 					{
 						Name:      "up",
 						Usage:     "upload a local file to a path in the s3 bucket",
 						ArgsUsage: "<source filepath> <destination filepath>",
-						Action:    cmdRawUp,
+						//Action:    cmdRawUp,
 					},
 					{
 						Name:      "down",
 						Usage:     "download a file or directory from the s3 bucket",
 						UsageText: "if the path ends in a '/' it will attempt to download all files in that directory",
 						ArgsUsage: "<source filepath> <destination filepath>",
-						Action:    cmdRawDown,
+						//Action:    cmdRawDown,
 					},
 					{
 						Name:      "mkdir",
 						Usage:     "create a directory in the s3 bucket - must end with a '/'",
 						UsageText: "note there are no directories in s3, just empty objects that end with a '/'",
 						ArgsUsage: "<directory path>",
-						Action:    cmdRawMkdir,
+						//Action:    cmdRawMkdir,
 					},
 					{
 						Name:      "delete",
 						Usage:     "delete a file from the s3 bucket",
 						ArgsUsage: "<filepath>",
-						Action:    cmdRawDelete,
+						//Action:    cmdRawDelete,
 					},
 				},
 			},
@@ -186,16 +186,9 @@ func main() {
 	}
 }
 
-func cmdRawBech32(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	bech32String := first
-	bech32Prefix := tail[0]
+func cmdRawBech32(cobraCmd *cobra.Command, args []string) error {
+	bech32String := args[0]
+	bech32Prefix := args[1]
 	newbech32String, err := bech32ify(bech32String, bech32Prefix)
 	if err != nil {
 		return err
@@ -205,16 +198,9 @@ func cmdRawBech32(c *cli.Context) error {
 }
 
 // copy a local file to the bucket
-func cmdRawUp(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	local := first
-	remote := tail[0]
+func cmdRawUp(cobraCmd *cobra.Command, args []string) error {
+	local := args[0]
+	remote := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -237,17 +223,10 @@ func cmdRawUp(c *cli.Context) error {
 	return nil
 }
 
-// copy a local file to the bucket
-func cmdRawDown(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	remote := first
-	local := tail[0]
+// copy a file from the bucket to the local machine
+func cmdRawDown(cobraCmd *cobra.Command, args []string) error {
+	remote := args[0]
+	local := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -285,16 +264,9 @@ func cmdRawDown(c *cli.Context) error {
 }
 
 // dump content of all files in a dir
-func cmdRawCat(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	chainName := first
-	keyName := tail[0]
+func cmdRawCat(cobraCmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -332,14 +304,9 @@ func cmdRawCat(c *cli.Context) error {
 	return nil
 }
 
-// copy a local file to the bucket
-func cmdRawDelete(c *cli.Context) error {
-	args := c.Args()
-	filePath := args.First()
-	if filePath == "" {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
+// delete a file from the bucket
+func cmdRawDelete(cobraCmd *cobra.Command, args []string) error {
+	filePath := args[0]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -352,13 +319,9 @@ func cmdRawDelete(c *cli.Context) error {
 }
 
 // create an empty object with the given name
-func cmdRawMkdir(c *cli.Context) error {
-	args := c.Args()
-	dirName := args.First()
-	if dirName == "" {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	} else if !strings.HasSuffix(dirName, "/") {
+func cmdRawMkdir(cobraCmd *cobra.Command, args []string) error {
+	dirName := args[0]
+	if !strings.HasSuffix(dirName, "/") {
 		fmt.Println("directory paths must end with a '/'")
 		return nil
 	}
