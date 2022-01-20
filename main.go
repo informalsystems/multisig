@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -40,157 +40,16 @@ type SignData struct {
 }
 
 func main() {
-	app := &cli.App{
-		Name:   "multisig",
-		Usage:  "manage multisig transactions",
-		Action: cli.ShowAppHelp,
-		Commands: []*cli.Command{
-			{
-				Name:  "generate",
-				Usage: "generate a new unsigned tx",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "tx",
-						Value:    "",
-						Usage:    "unsigned tx file",
-						Required: true,
-					},
-					&cli.IntFlag{
-						Name:    "sequence",
-						Aliases: []string{"s"},
-						Value:   0,
-						Usage:   "sequence number for the tx",
-						// Required: true,
-					},
-					&cli.IntFlag{
-						Name:    "account",
-						Aliases: []string{"a"},
-						Value:   0,
-						Usage:   "account number for the tx",
-						//Required: true,
-					},
-					&cli.StringFlag{
-						Name:    "node",
-						Aliases: []string{"n"},
-						Value:   "",
-						Usage:   "tendermint rpc node to get sequence and account number from",
-					},
-				},
-				Action:    cmdGenerate,
-				ArgsUsage: "<chain name> <key name>",
-			},
-			{
-				Name:      "sign",
-				Usage:     "sign a tx",
-				Action:    cmdSign,
-				ArgsUsage: "<chain name> <key name>",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "from",
-						Value:    "",
-						Usage:    "name of your local key to sign with",
-						Required: true,
-					},
-				},
-			},
-			{
-				Name:      "list",
-				Usage:     "list items in a directory",
-				Action:    cmdList,
-				ArgsUsage: "<chain name> <key name>",
-				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:  "all",
-						Value: false,
-						Usage: "list files for all chains and keys",
-					},
-				},
-			},
-			{
-				Name:      "broadcast",
-				Usage:     "broadcast a tx",
-				Action:    cmdBroadcast,
-				ArgsUsage: "<chain name> <key name>",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:  "node",
-						Value: "",
-						Usage: "node address to broadcast too. flag overrides config",
-					},
-					&cli.StringFlag{
-						Name:     "description",
-						Aliases:  []string{"d"},
-						Value:    "",
-						Usage:    "description of the tx to be logged",
-						Required: true,
-					},
-				},
-			},
-			{
-				Name:  "raw",
-				Usage: "raw operations on the s3 bucket",
-				// Action:      cmdRaw,
-				Subcommands: []*cli.Command{
-					{
-						Name:      "bech32",
-						Usage:     "convert a bech32 string to a different prefix",
-						ArgsUsage: "<bech32 string> <new prefix>",
-						Action:    cmdRawBech32,
-					},
-					{
-						Name:      "cat",
-						Usage:     "dump the contents of all files in a directory",
-						ArgsUsage: "<chain name> <key name>",
-						Action:    cmdRawCat,
-					},
-					{
-						Name:      "up",
-						Usage:     "upload a local file to a path in the s3 bucket",
-						ArgsUsage: "<source filepath> <destination filepath>",
-						Action:    cmdRawUp,
-					},
-					{
-						Name:      "down",
-						Usage:     "download a file or directory from the s3 bucket",
-						UsageText: "if the path ends in a '/' it will attempt to download all files in that directory",
-						ArgsUsage: "<source filepath> <destination filepath>",
-						Action:    cmdRawDown,
-					},
-					{
-						Name:      "mkdir",
-						Usage:     "create a directory in the s3 bucket - must end with a '/'",
-						UsageText: "note there are no directories in s3, just empty objects that end with a '/'",
-						ArgsUsage: "<directory path>",
-						Action:    cmdRawMkdir,
-					},
-					{
-						Name:      "delete",
-						Usage:     "delete a file from the s3 bucket",
-						ArgsUsage: "<filepath>",
-						Action:    cmdRawDelete,
-					},
-				},
-			},
-		},
-	}
-
-	err := app.Run(os.Args)
+	// cmds defined in cmd.go
+	err := rootCmd.Execute()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
-func cmdRawBech32(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	bech32String := first
-	bech32Prefix := tail[0]
+func cmdRawBech32(cobraCmd *cobra.Command, args []string) error {
+	bech32String := args[0]
+	bech32Prefix := args[1]
 	newbech32String, err := bech32ify(bech32String, bech32Prefix)
 	if err != nil {
 		return err
@@ -200,16 +59,9 @@ func cmdRawBech32(c *cli.Context) error {
 }
 
 // copy a local file to the bucket
-func cmdRawUp(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	local := first
-	remote := tail[0]
+func cmdRawUp(cobraCmd *cobra.Command, args []string) error {
+	local := args[0]
+	remote := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -232,17 +84,10 @@ func cmdRawUp(c *cli.Context) error {
 	return nil
 }
 
-// copy a local file to the bucket
-func cmdRawDown(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	remote := first
-	local := tail[0]
+// copy a file from the bucket to the local machine
+func cmdRawDown(cobraCmd *cobra.Command, args []string) error {
+	remote := args[0]
+	local := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -280,16 +125,9 @@ func cmdRawDown(c *cli.Context) error {
 }
 
 // dump content of all files in a dir
-func cmdRawCat(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-
-	chainName := first
-	keyName := tail[0]
+func cmdRawCat(cobraCmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -327,14 +165,9 @@ func cmdRawCat(c *cli.Context) error {
 	return nil
 }
 
-// copy a local file to the bucket
-func cmdRawDelete(c *cli.Context) error {
-	args := c.Args()
-	filePath := args.First()
-	if filePath == "" {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
+// delete a file from the bucket
+func cmdRawDelete(cobraCmd *cobra.Command, args []string) error {
+	filePath := args[0]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -347,13 +180,9 @@ func cmdRawDelete(c *cli.Context) error {
 }
 
 // create an empty object with the given name
-func cmdRawMkdir(c *cli.Context) error {
-	args := c.Args()
-	dirName := args.First()
-	if dirName == "" {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	} else if !strings.HasSuffix(dirName, "/") {
+func cmdRawMkdir(cobraCmd *cobra.Command, args []string) error {
+	dirName := args[0]
+	if !strings.HasSuffix(dirName, "/") {
 		fmt.Println("directory paths must end with a '/'")
 		return nil
 	}
@@ -368,15 +197,9 @@ func cmdRawMkdir(c *cli.Context) error {
 	return nil
 }
 
-func cmdGenerate(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-	chainName := first
-	keyName := tail[0]
+func cmdGenerate(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -398,12 +221,12 @@ func cmdGenerate(c *cli.Context) error {
 	//------------------------------------
 
 	nodeAddress := chain.Node
-	if c.String("node") != "" {
-		nodeAddress = c.String("node")
+	if flagNode != "" {
+		nodeAddress = flagNode
 	}
 
-	isAccSet := c.IsSet("account")
-	isSeqSet := c.IsSet("sequence")
+	isAccSet := cmd.Flags().Changed("account")
+	isSeqSet := cmd.Flags().Changed("sequence")
 
 	// if both account and sequence are not set, the node must be set in the config or CLI
 	noAccOrSeq := !(isAccSet && isSeqSet)
@@ -434,14 +257,14 @@ func cmdGenerate(c *cli.Context) error {
 
 	// if the acc or seq flags are set, overwrite the node
 	if isAccSet {
-		accountNum = c.Int("account")
+		accountNum = flagAccount
 	}
 	if isSeqSet {
-		sequenceNum = c.Int("sequence")
+		sequenceNum = flagSequence
 	}
 
 	// read the unsigned tx file
-	txFile := c.String("tx")
+	txFile := flagTx
 	unsignedBytes, err := ioutil.ReadFile(txFile)
 	if err != nil {
 		return err
@@ -474,14 +297,14 @@ func cmdGenerate(c *cli.Context) error {
 	return nil
 }
 
-func cmdList(c *cli.Context) error {
-	if c.Bool("all") {
-		return listAll(c)
+func cmdList(cmd *cobra.Command, args []string) error {
+	if flagAll {
+		return listAll()
 	}
-	return listDir(c)
+	return listDir(args)
 }
 
-func listAll(c *cli.Context) error {
+func listAll() error {
 	conf, err := loadConfig(configFile)
 	if err != nil {
 		return err
@@ -518,15 +341,13 @@ func listAll(c *cli.Context) error {
 
 }
 
-func listDir(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
+func listDir(args []string) error {
+	if len(args) != 2 {
+		fmt.Println("must specify args: <chain name> <key name>")
 		return nil
 	}
-	chainName := first
-	keyName := tail[0]
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -558,7 +379,7 @@ func listDir(c *cli.Context) error {
 
 }
 
-func cmdSign(c *cli.Context) error {
+func cmdSign(cobraCmd *cobra.Command, args []string) error {
 	/*
 		fetch the unsigned tx and signdata
 		display the tx and sign data and ask for confirmation from the user
@@ -566,16 +387,10 @@ func cmdSign(c *cli.Context) error {
 		upload the signature to the right bucket
 	*/
 
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-	chainName := first
-	keyName := tail[0]
+	chainName := args[0]
+	keyName := args[1]
 
-	from := c.String("from")
+	from := flagFrom
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -688,15 +503,9 @@ func cmdSign(c *cli.Context) error {
 	return nil
 }
 
-func cmdBroadcast(c *cli.Context) error {
-	args := c.Args()
-	first, tail := args.First(), args.Tail()
-	if len(tail) < 1 {
-		fmt.Println("must specify args:", c.Command.ArgsUsage)
-		return nil
-	}
-	chainName := first
-	keyName := tail[0]
+func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -801,8 +610,8 @@ func cmdBroadcast(c *cli.Context) error {
 	}
 
 	nodeAddress := chain.Node
-	if c.String("node") != "" {
-		nodeAddress = c.String("node")
+	if flagNode != "" {
+		nodeAddress = flagNode
 	}
 
 	// broadcast tx

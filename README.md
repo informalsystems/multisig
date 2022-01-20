@@ -4,8 +4,9 @@ Disclaimer: Use at your risk, responsibility for damages (if any) to anyone
 resulting from the use of this software rest entirely with the user. The author
 is not responsible for any damage that its use could cause.
 
-WARNING: this tool is very new and may break at any time, you probably shouldn't use it!
-If you do use it, its best to do so from a clean directory and with a clean S3 bucket.
+WARNING: This tool is still new and under development. 
+We do use it regularly and try not to break APIs but cannot make any guarantees yet. 
+It's still a bit rough around the edges, so its best to use from a clean directory and with a clean S3 bucket.
 
 This is a tool for managing multisig txs with Cosmos-SDK based binaries and an
 AWS S3 bucket.
@@ -247,12 +248,11 @@ See `multisig raw --help` and the help menu for each subcommand for more info.
 
 High Priority
 
-- move to cobra (whoops!). UX showstoppers in urfave:
-    - flags have to come before args ?! see https://github.com/urfave/cli/issues/427
-- made config globally accessible eg. in `~/.multisig/config.toml`
+- make config globally accessible eg. in `~/.multisig/config.toml`
 - add denoms to chains and have `generate` validate txs are using correct denoms
 - `generate` should require confirmation when pushing a new file if there is
   already data there
+- generate should check fees and gas are high enough
 - add multisig threshold to the config and ensure theres enough signatures
   before broadcasting
 - convenience commands to generate voting and reward withdrawal txs 
