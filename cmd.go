@@ -4,9 +4,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// TODO: something more intelligent
+// Remember to change this every time ...
+const VERSION = "0.1.0"
+
 var rootCmd = &cobra.Command{
-	Use:   "multisig",
-	Short: "manage multisig transactions",
+	Use:     "multisig",
+	Short:   "manage multisig transactions",
+	Version: VERSION,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
