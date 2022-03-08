@@ -104,6 +104,7 @@ var (
 	flagForce       bool
 	flagAdditional  bool
 	flagDescription string
+	flagTxIndex     int
 )
 
 func init() {
@@ -128,11 +129,13 @@ func init() {
 	generateCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
 	generateCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
 
+	signCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to sign")
 	signCmd.Flags().StringVarP(&flagFrom, "from", "f", "", "name of your local key to sign with")
 	signCmd.MarkFlagRequired("from")
 
 	listCmd.Flags().BoolVarP(&flagAll, "all", "a", false, "list files for all chains and keys")
 
 	broadcastCmd.Flags().StringVarP(&flagNode, "node", "n", "", "node address to broadcast too. flag overrides config")
+	broadcastCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to broadcast")
 	// broacastCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "description of the tx to be logged")
 }

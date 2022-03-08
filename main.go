@@ -214,6 +214,7 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 	keyName := args[1]
 
 	from := flagFrom
+	txIndex := flagTxIndex
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -230,7 +231,7 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	txDir := filepath.Join(chainName, keyName)
+	txDir := filepath.Join(chainName, keyName, fmt.Sprintf("%d", txIndex))
 
 	sess := awsSession(conf.AWS)
 	downloader := s3manager.NewDownloader(sess)
@@ -345,15 +346,45 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
+	txIndex := flagTxIndex
+	txDir := filepath.Join(chainName, keyName, fmt.Sprintf("%d", txIndex))
+
 	sess := awsSession(conf.AWS)
 	svc := s3.New(sess)
-	txDir := filepath.Join(chainName, keyName)
 
 	// list all items in bucket
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
 	if err != nil {
 		return err
 	}
+
+	//--------------------------------
+	// txIndex specified must be smallest index for this chainName/keyName pair,
+	// otherwise error
+
+	files, err := awsListFilesInDir(sess, conf.AWS, chainName, keyName)
+	if err != nil {
+		return err
+	}
+
+	// see if any indices are smaller than txIndex, and if so, quit
+	for _, fullPathFile := range files {
+		dirPrefix := filepath.Join(chainName, keyName)
+		f := strings.TrimPrefix(fullPathFile, dirPrefix+"/")
+		spl := strings.Split(f, "/")
+		if len(spl) == 1 {
+			continue
+		}
+		nString := spl[0]
+		n, err := strconv.Atoi(nString)
+		if err != nil {
+			return fmt.Errorf("failed to read number after %s in path %s", txDir, fullPathFile)
+		}
+		if n < txIndex {
+			return fmt.Errorf("found index %d smaller than specified txIndex %d. txs must be broadcast in order", n, txIndex)
+		}
+	}
+	//--------------------------------
 
 	fileNames := []string{}
 	for _, item := range resp.Contents {
@@ -386,6 +417,13 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 			continue
 		}
 		sigFileNames = append(sigFileNames, f)
+	}
+
+	// TODO: add this to the key config so its not hardcoded to 2.
+	// can default to 2 tho
+	threshold := 2
+	if len(sigFileNames) < threshold {
+		return fmt.Errorf("Insufficient signatures for broadcast. Requires %d, got %d", threshold, len(sigFileNames))
 	}
 
 	// read and unmarshal the sign data
@@ -439,6 +477,7 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 
 	// broadcast tx
 	// TODO: use --broadcast-mode block ?
+	// 	  otherwise the tx might still fail when it gets executed but we will delete it
 	cmdArgs = []string{"tx", "broadcast", signedJSON, "--node", nodeAddress}
 	cmd = exec.Command(binary, cmdArgs...)
 	b, err = cmd.CombinedOutput()
@@ -492,7 +531,7 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// TODO can we get a programmatic result from the tx?
+// TODO can we get a result from the tx without having to parse the tx response? use the API instead of CLI
 // Need to parse out the return code and the tx hash
 func parseTxResult(txResultBytes []byte) (int, string, error) {
 	spl := strings.Split(string(txResultBytes), "\n")
