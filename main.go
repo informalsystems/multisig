@@ -103,7 +103,7 @@ func cmdRawDown(cobraCmd *cobra.Command, args []string) error {
 		if err := os.Chdir(local); err != nil {
 			return err
 		}
-		_, err = awsFetchFilesInDir(sess, conf.AWS, remote)
+		_, err = awsDownloadFilesInDir(sess, conf.AWS, remote)
 		return err
 	}
 
@@ -138,7 +138,7 @@ func cmdRawCat(cobraCmd *cobra.Command, args []string) error {
 
 	txDir := filepath.Join(chainName, keyName)
 
-	files, err := awsFetchFilesInDir(sess, conf.AWS, txDir)
+	files, err := awsDownloadFilesInDir(sess, conf.AWS, txDir)
 	if err != nil {
 		return err
 	}
@@ -200,6 +200,10 @@ func cmdRawMkdir(cobraCmd *cobra.Command, args []string) error {
 func cmdGenerate(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
+
+	if flagForce && flagAdditional {
+		return fmt.Errorf("Cannot specify both --force and --additional")
+	}
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -270,6 +274,60 @@ func cmdGenerate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	txDir := filepath.Join(chainName, keyName)
+
+	sess := awsSession(conf.AWS)
+
+	// check if a file already exists
+	files, err := awsListFilesInDir(sess, conf.AWS, chainName, keyName)
+	if err != nil {
+		return err
+	}
+
+	// if theres already files there and we dont specify -f or -x, return
+	if len(files) > 0 && !(flagForce || flagAdditional) {
+		return fmt.Errorf("Files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
+	} else if len(files) == 0 && (flagForce || flagAdditional) {
+		return fmt.Errorf("Path %s/%s is empty, Cannot specify --force or --additional", chainName, keyName)
+	}
+
+	// now, either:
+	// its empty, so push files
+	// its not empty, overwrite files (--force)
+	// its not empty, add additional files (--additional)
+
+	// we always start paths with 0, to support multiple txs per chain/key pair
+	N := 0
+
+	// if we're pushing additional files, figure out what the highest number is and increment,
+	// and add that to the sequence number
+	if flagAdditional {
+		// figure out what highest number in the files is
+		// files should be either "filename.json" or "n/filename.json"
+		for _, fullPathFile := range files {
+			f := strings.TrimPrefix(fullPathFile, txDir+"/")
+			spl := strings.Split(f, "/")
+			if len(spl) == 1 {
+				continue
+			}
+			nString := spl[0]
+			n, err := strconv.Atoi(nString)
+			if err != nil {
+				return fmt.Errorf("failed to read number after %s in path %s", txDir, fullPathFile)
+			}
+			if n > N {
+				N = n
+			}
+		}
+
+		N += 1
+
+		if !isSeqSet {
+			sequenceNum += N
+		}
+	}
+	txDir = filepath.Join(txDir, fmt.Sprintf("%d", N))
+
 	// create and marshal the sign data
 	signData := SignData{
 		Account:  accountNum,
@@ -280,9 +338,6 @@ func cmdGenerate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	txDir := filepath.Join(chainName, keyName)
-
-	sess := awsSession(conf.AWS)
 
 	// upload the unsigned tx
 	if err := awsUpload(sess, conf.AWS, txDir, unsignedJSON, unsignedBytes); err != nil {
