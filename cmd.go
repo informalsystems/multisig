@@ -14,14 +14,14 @@ var rootCmd = &cobra.Command{
 
 var generateCmd = &cobra.Command{
 	Use:   "generate <chain name> <key name>",
-	Short: "sign a tx",
+	Short: "generate a new unsigned tx",
 	Args:  cobra.ExactArgs(2),
 	RunE:  cmdGenerate,
 }
 
 var signCmd = &cobra.Command{
 	Use:   "sign <chain name> <key name>",
-	Short: "generate a new unsigned tx",
+	Short: "sign a tx",
 	Args:  cobra.ExactArgs(2),
 	RunE:  cmdSign,
 }
