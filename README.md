@@ -29,7 +29,7 @@ Quick summary, with much more below:
 - Create a directory in the bucket for each chain and key, like `/<chain name>/<key name>/`
 - All signers have access to the entire s3 bucket, and can read/write at will, so assumption is they are all
   trusted
-- `multisig generate` takes a generated unsigned tx file and pushes it to the s3 directory along with data needed for signing (eg. account number, sequence number, chain id)
+- `multisig tx push` takes an unsigned tx file and pushes it to the s3 directory along with data needed for signing (eg. account number, sequence number, chain id)
 - `multisig sign` fetches the unsigned tx and signing data for a given chain and key, signs it using the correct binary (eg. `gaiad tx sign unsigned.json ...`), and pushes the signature back to the directory
 - `multisig list` lists the files in a directory so you can see who has signed
 - `multisig broadcast` fetches all the data from a directory, compiles the signed tx (eg. `gaiad tx multisign unsigned.json ...`), broadcasts it using the configured node, and deletes all the files from the directory so signing can start fresh for a new tx
@@ -156,7 +156,7 @@ name = "cosmos"                 # name of the chain
 binary = "gaiad"                # name of binary
 prefix = "cosmos"               # bech32 prefix
 id = "cosmoshub-4"              # chain-id
-node = "http://localhost:26657" # a synced node - only needed for `generate` and `broadcast` commands
+node = "http://localhost:26657" # a synced node - only needed for `tx` and `broadcast` commands
 ```
 
 ## Run
@@ -176,7 +176,7 @@ Generate a `unsigned.json` tx as you normally would for the given multisig addre
 Then run
 
 ```
-multisig generate --tx unsigned.json --node <node address> <chain name> <key name>
+multisig tx push--tx unsigned.json --node <node address> <chain name> <key name>
 ```
 
 This will push the `unsigned.json` to the directory in the s3 bucket for the specified chain and key (ie. `/<chain name>/<key name>/0`). 
@@ -274,12 +274,12 @@ See `multisig raw --help` and the help menu for each subcommand for more info.
 High Priority
 
 - make config globally accessible eg. in `~/.multisig/config.toml`
-- add denoms to chains and have `generate` validate txs are using correct denoms
-- generate should check fees and gas are high enough
+- add denoms to chains and have `tx push` validate txs are using correct denoms
+- tx push should check fees and gas are high enough
 - add multisig threshold to the config and ensure theres enough signatures
   before broadcasting
 - convenience commands to generate voting and reward withdrawal txs 
-- `generate` should include a description that can be displayed in the `list` so signers know what each tx is doing
+- `tx push` should include a description that can be displayed in the `list` so signers know what each tx is doing
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
 - need a way to assign local key names (`--from`) to keys (possibly on a per-chain basis, eek)
