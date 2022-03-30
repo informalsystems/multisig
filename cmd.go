@@ -17,12 +17,28 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var generateCmd = &cobra.Command{
-	Use:   "generate <chain name> <key name>",
+var txCmd = &cobra.Command{
+	Use:   "tx",
 	Short: "generate a new unsigned tx",
+	// Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
+}
+
+var pushCmd = &cobra.Command{
+	Use:   "push <chain name> <key name>",
+	Short: "push the given unsigned tx with associated signing metadata",
 	Long:  "if a tx already exists for this chain and key, it will start using prefixes",
 	Args:  cobra.ExactArgs(2),
-	RunE:  cmdGenerate,
+	RunE:  cmdPush,
+}
+
+var voteCmd = &cobra.Command{
+	Use:   "vote <chain name> <key name> <proposal number> <vote option (yes/no/veto/abstain)>",
+	Short: "generate a vote tx and push it",
+	Args:  cobra.ExactArgs(4),
+	RunE:  cmdVote,
 }
 
 var signCmd = &cobra.Command{
@@ -108,7 +124,7 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(generateCmd)
+	rootCmd.AddCommand(txCmd)
 	rootCmd.AddCommand(signCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(broadcastCmd)
@@ -121,13 +137,16 @@ func init() {
 	rawCmd.AddCommand(rawMkdirCmd)
 	rawCmd.AddCommand(rawDeleteCmd)
 
-	generateCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
-	generateCmd.MarkFlagRequired("tx")
-	generateCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
-	generateCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
-	generateCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
-	generateCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
-	generateCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+	txCmd.AddCommand(pushCmd)
+	txCmd.AddCommand(voteCmd)
+
+	txCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
+	txCmd.MarkFlagRequired("tx")
+	txCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
+	txCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
+	txCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
+	txCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
+	txCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
 
 	signCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to sign")
 	signCmd.Flags().StringVarP(&flagFrom, "from", "f", "", "name of your local key to sign with")

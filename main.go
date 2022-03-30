@@ -47,9 +47,88 @@ func main() {
 	}
 }
 
-func cmdGenerate(cmd *cobra.Command, args []string) error {
+func cmdVote(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
+	propID := args[2]
+	voteOption := args[3]
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	chain, found := conf.GetChain(chainName)
+	if !found {
+		return fmt.Errorf("chain %s not found in config", chainName)
+	}
+	key, found := conf.GetKey(keyName)
+	if !found {
+		return fmt.Errorf("key %s not found in config", keyName)
+	}
+
+	// TODO:
+	// node address?
+	// keyring backend?
+
+	binary := chain.Binary
+	address, err := bech32ify(key.Address, chain.Prefix)
+	if err != nil {
+		return err
+	}
+
+	// TODO: config ?
+	gas := 300000
+	fee := 10000
+
+	// XXX: get the denom
+	// this is a massive hack. use the chain-registry instead :D
+	denom, err := getDenom(binary)
+	if err != nil {
+		return err
+	}
+
+	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
+	cmdArgs := []string{"tx", "gov", "vote", propID, voteOption,
+		"--from", address,
+		"--fees", fmt.Sprintf("%d%s", fee, denom),
+		"--gas", fmt.Sprintf("%d", gas),
+		"--generate-only",
+	}
+	// TODO: do we need these?
+	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
+	// cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	execCmd := exec.Command(binary, cmdArgs...)
+	fmt.Println(execCmd)
+	unsignedBytes, err := execCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(execCmd)
+		fmt.Println(string(unsignedBytes))
+		return err
+	}
+	fmt.Println(string(unsignedBytes))
+
+	return pushTx(chainName, keyName, unsignedBytes, cmd)
+}
+
+func cmdPush(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
+
+	// read the unsigned tx file
+	txFile := flagTx
+	unsignedBytes, err := ioutil.ReadFile(txFile)
+	if err != nil {
+		return err
+	}
+
+	return pushTx(chainName, keyName, unsignedBytes, cmd)
+}
+
+func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Command) error {
 
 	if flagForce && flagAdditional {
 		return fmt.Errorf("Cannot specify both --force and --additional")
@@ -115,13 +194,6 @@ func cmdGenerate(cmd *cobra.Command, args []string) error {
 	}
 	if isSeqSet {
 		sequenceNum = flagSequence
-	}
-
-	// read the unsigned tx file
-	txFile := flagTx
-	unsignedBytes, err := ioutil.ReadFile(txFile)
-	if err != nil {
-		return err
 	}
 
 	txDir := filepath.Join(chainName, keyName)
@@ -190,7 +262,7 @@ func cmdGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	// upload the unsigned tx
-	if err := awsUpload(sess, conf.AWS, txDir, unsignedJSON, unsignedBytes); err != nil {
+	if err := awsUpload(sess, conf.AWS, txDir, unsignedJSON, unsignedTxBytes); err != nil {
 		return err
 	}
 
