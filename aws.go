@@ -83,7 +83,7 @@ func awsDelete(sess *session.Session, conf AWS, objName string) error {
 }
 
 // download all files in the dir and return list of file names
-func awsFetchFilesInDir(sess *session.Session, conf AWS, dirPath string) ([]string, error) {
+func awsDownloadFilesInDir(sess *session.Session, conf AWS, dirPath string) ([]string, error) {
 	svc := s3.New(sess)
 
 	// list all items in bucket
@@ -117,5 +117,29 @@ func awsFetchFilesInDir(sess *session.Session, conf AWS, dirPath string) ([]stri
 			return nil, err
 		}
 	}
+	return files, nil
+}
+
+// return all files with prefix "chainName/keyName/"
+// eg. will return "chainName/keyName/foo" but not "chainName/keyName/" itself
+func awsListFilesInDir(sess *session.Session, conf AWS, chainName, keyName string) ([]string, error) {
+	svc := s3.New(sess)
+
+	filePath := filepath.Join(chainName, keyName) + "/"
+
+	// list all items in bucket
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.Bucket)})
+	if err != nil {
+		return nil, err
+	}
+
+	files := []string{}
+	for _, item := range resp.Contents {
+		key := *item.Key
+		if strings.HasPrefix(key, filePath) && len(key) > len(filePath) {
+			files = append(files, key)
+		}
+	}
+
 	return files, nil
 }

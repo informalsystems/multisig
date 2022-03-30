@@ -20,6 +20,7 @@ var rootCmd = &cobra.Command{
 var generateCmd = &cobra.Command{
 	Use:   "generate <chain name> <key name>",
 	Short: "generate a new unsigned tx",
+	Long:  "if a tx already exists for this chain and key, it will start using prefixes",
 	Args:  cobra.ExactArgs(2),
 	RunE:  cmdGenerate,
 }
@@ -100,7 +101,10 @@ var (
 	flagNode        string
 	flagFrom        string
 	flagAll         bool
+	flagForce       bool
+	flagAdditional  bool
 	flagDescription string
+	flagTxIndex     int
 )
 
 func init() {
@@ -122,12 +126,16 @@ func init() {
 	generateCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
 	generateCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
 	generateCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
+	generateCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
+	generateCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
 
+	signCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to sign")
 	signCmd.Flags().StringVarP(&flagFrom, "from", "f", "", "name of your local key to sign with")
 	signCmd.MarkFlagRequired("from")
 
 	listCmd.Flags().BoolVarP(&flagAll, "all", "a", false, "list files for all chains and keys")
 
 	broadcastCmd.Flags().StringVarP(&flagNode, "node", "n", "", "node address to broadcast too. flag overrides config")
+	broadcastCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to broadcast")
 	// broacastCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "description of the tx to be logged")
 }

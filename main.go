@@ -47,159 +47,13 @@ func main() {
 	}
 }
 
-func cmdRawBech32(cobraCmd *cobra.Command, args []string) error {
-	bech32String := args[0]
-	bech32Prefix := args[1]
-	newbech32String, err := bech32ify(bech32String, bech32Prefix)
-	if err != nil {
-		return err
-	}
-	fmt.Println(newbech32String)
-	return nil
-}
-
-// copy a local file to the bucket
-func cmdRawUp(cobraCmd *cobra.Command, args []string) error {
-	local := args[0]
-	remote := args[1]
-
-	conf, err := loadConfig(configFile)
-	if err != nil {
-		return err
-	}
-	sess := awsSession(conf.AWS)
-
-	// read the local file
-	localBytes, err := ioutil.ReadFile(local)
-	if err != nil {
-		return err
-	}
-
-	// upload it
-	dir := filepath.Dir(remote)
-	fileName := filepath.Base(remote)
-	if err := awsUpload(sess, conf.AWS, dir, fileName, localBytes); err != nil {
-		return err
-	}
-	return nil
-}
-
-// copy a file from the bucket to the local machine
-func cmdRawDown(cobraCmd *cobra.Command, args []string) error {
-	remote := args[0]
-	local := args[1]
-
-	conf, err := loadConfig(configFile)
-	if err != nil {
-		return err
-	}
-	sess := awsSession(conf.AWS)
-
-	// if remote ends in /, fetch the whole directory and return
-	if strings.HasSuffix(remote, "/") {
-		if err := os.Mkdir(local, 0777); err != nil {
-			return err
-		}
-		if err := os.Chdir(local); err != nil {
-			return err
-		}
-		_, err = awsFetchFilesInDir(sess, conf.AWS, remote)
-		return err
-	}
-
-	// otherwise, just download the one file
-	dir := filepath.Dir(remote)
-	fileName := filepath.Base(remote)
-	file, err := awsDownload(sess, conf.AWS, dir, fileName)
-	if err != nil {
-		return err
-	}
-
-	// rename if necessary
-	oldName := file.Name()
-	newName := local
-	if oldName != newName {
-		return os.Rename(oldName, newName)
-	}
-	return nil
-}
-
-// dump content of all files in a dir
-func cmdRawCat(cobraCmd *cobra.Command, args []string) error {
-	chainName := args[0]
-	keyName := args[1]
-
-	conf, err := loadConfig(configFile)
-	if err != nil {
-		return err
-	}
-
-	sess := awsSession(conf.AWS)
-
-	txDir := filepath.Join(chainName, keyName)
-
-	files, err := awsFetchFilesInDir(sess, conf.AWS, txDir)
-	if err != nil {
-		return err
-	}
-
-	if len(files) == 0 {
-		fmt.Println("No files in", txDir)
-		return nil
-	}
-
-	fmt.Println("") // for spacing
-	for _, f := range files {
-		// cat the file
-		b, err := ioutil.ReadFile(f)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("---------- %s ----------\n", f)
-		fmt.Println("")
-		fmt.Println(string(b))
-		fmt.Println("")
-		os.Remove(f)
-	}
-
-	return nil
-}
-
-// delete a file from the bucket
-func cmdRawDelete(cobraCmd *cobra.Command, args []string) error {
-	filePath := args[0]
-
-	conf, err := loadConfig(configFile)
-	if err != nil {
-		return err
-	}
-
-	sess := awsSession(conf.AWS)
-	awsDelete(sess, conf.AWS, filePath)
-	return nil
-}
-
-// create an empty object with the given name
-func cmdRawMkdir(cobraCmd *cobra.Command, args []string) error {
-	dirName := args[0]
-	if !strings.HasSuffix(dirName, "/") {
-		fmt.Println("directory paths must end with a '/'")
-		return nil
-	}
-
-	conf, err := loadConfig(configFile)
-	if err != nil {
-		return err
-	}
-
-	sess := awsSession(conf.AWS)
-	awsMkdir(sess, conf.AWS, dirName)
-	return nil
-}
-
 func cmdGenerate(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
+
+	if flagForce && flagAdditional {
+		return fmt.Errorf("Cannot specify both --force and --additional")
+	}
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -270,6 +124,60 @@ func cmdGenerate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	txDir := filepath.Join(chainName, keyName)
+
+	sess := awsSession(conf.AWS)
+
+	// check if a file already exists
+	files, err := awsListFilesInDir(sess, conf.AWS, chainName, keyName)
+	if err != nil {
+		return err
+	}
+
+	// if theres already files there and we dont specify -f or -x, return
+	if len(files) > 0 && !(flagForce || flagAdditional) {
+		return fmt.Errorf("Files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
+	} else if len(files) == 0 && (flagForce || flagAdditional) {
+		return fmt.Errorf("Path %s/%s is empty, Cannot specify --force or --additional", chainName, keyName)
+	}
+
+	// now, either:
+	// its empty, so push files
+	// its not empty, overwrite files (--force)
+	// its not empty, add additional files (--additional)
+
+	// we always start paths with 0, to support multiple txs per chain/key pair
+	N := 0
+
+	// if we're pushing additional files, figure out what the highest number is and increment,
+	// and add that to the sequence number
+	if flagAdditional {
+		// figure out what highest number in the files is
+		// files should be either "filename.json" or "n/filename.json"
+		for _, fullPathFile := range files {
+			f := strings.TrimPrefix(fullPathFile, txDir+"/")
+			spl := strings.Split(f, "/")
+			if len(spl) == 1 {
+				continue
+			}
+			nString := spl[0]
+			n, err := strconv.Atoi(nString)
+			if err != nil {
+				return fmt.Errorf("failed to read number after %s in path %s", txDir, fullPathFile)
+			}
+			if n > N {
+				N = n
+			}
+		}
+
+		N += 1
+
+		if !isSeqSet {
+			sequenceNum += N
+		}
+	}
+	txDir = filepath.Join(txDir, fmt.Sprintf("%d", N))
+
 	// create and marshal the sign data
 	signData := SignData{
 		Account:  accountNum,
@@ -280,9 +188,6 @@ func cmdGenerate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	txDir := filepath.Join(chainName, keyName)
-
-	sess := awsSession(conf.AWS)
 
 	// upload the unsigned tx
 	if err := awsUpload(sess, conf.AWS, txDir, unsignedJSON, unsignedBytes); err != nil {
@@ -297,88 +202,6 @@ func cmdGenerate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func cmdList(cmd *cobra.Command, args []string) error {
-	if flagAll {
-		return listAll()
-	}
-	return listDir(args)
-}
-
-func listAll() error {
-	conf, err := loadConfig(configFile)
-	if err != nil {
-		return err
-	}
-	sess := awsSession(conf.AWS)
-	svc := s3.New(sess)
-
-	// list all items in bucket
-	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
-	if err != nil {
-		return err
-	}
-
-	files := []string{}
-	for _, item := range resp.Contents {
-		key := *item.Key
-		files = append(files, key)
-	}
-
-	last := ""
-	sep := "---------------------------------"
-	fmt.Println(sep)
-	for _, f := range files {
-		fDir := filepath.Dir(f)
-		if fDir != filepath.Dir(last) && !strings.HasPrefix(fDir, last) {
-			fmt.Println(sep)
-		}
-		fmt.Println(f)
-		last = f
-	}
-	fmt.Println(sep)
-
-	return nil
-
-}
-
-func listDir(args []string) error {
-	if len(args) != 2 {
-		fmt.Println("must specify args: <chain name> <key name>")
-		return nil
-	}
-	chainName := args[0]
-	keyName := args[1]
-
-	conf, err := loadConfig(configFile)
-	if err != nil {
-		return err
-	}
-	sess := awsSession(conf.AWS)
-	svc := s3.New(sess)
-	filePath := filepath.Join(chainName, keyName)
-
-	// list all items in bucket
-	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
-	if err != nil {
-		return err
-	}
-
-	files := []string{}
-	for _, item := range resp.Contents {
-		key := *item.Key
-		if strings.HasPrefix(key, filePath) {
-			files = append(files, key)
-		}
-	}
-
-	for _, f := range files {
-		fmt.Println(f)
-	}
-
-	return nil
-
-}
-
 func cmdSign(cobraCmd *cobra.Command, args []string) error {
 	/*
 		fetch the unsigned tx and signdata
@@ -391,6 +214,7 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 	keyName := args[1]
 
 	from := flagFrom
+	txIndex := flagTxIndex
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -407,7 +231,7 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	txDir := filepath.Join(chainName, keyName)
+	txDir := filepath.Join(chainName, keyName, fmt.Sprintf("%d", txIndex))
 
 	sess := awsSession(conf.AWS)
 	downloader := s3manager.NewDownloader(sess)
@@ -522,15 +346,45 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
+	txIndex := flagTxIndex
+	txDir := filepath.Join(chainName, keyName, fmt.Sprintf("%d", txIndex))
+
 	sess := awsSession(conf.AWS)
 	svc := s3.New(sess)
-	txDir := filepath.Join(chainName, keyName)
 
 	// list all items in bucket
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
 	if err != nil {
 		return err
 	}
+
+	//--------------------------------
+	// txIndex specified must be smallest index for this chainName/keyName pair,
+	// otherwise error
+
+	files, err := awsListFilesInDir(sess, conf.AWS, chainName, keyName)
+	if err != nil {
+		return err
+	}
+
+	// see if any indices are smaller than txIndex, and if so, quit
+	for _, fullPathFile := range files {
+		dirPrefix := filepath.Join(chainName, keyName)
+		f := strings.TrimPrefix(fullPathFile, dirPrefix+"/")
+		spl := strings.Split(f, "/")
+		if len(spl) == 1 {
+			continue
+		}
+		nString := spl[0]
+		n, err := strconv.Atoi(nString)
+		if err != nil {
+			return fmt.Errorf("failed to read number after %s in path %s", txDir, fullPathFile)
+		}
+		if n < txIndex {
+			return fmt.Errorf("found index %d smaller than specified txIndex %d. txs must be broadcast in order", n, txIndex)
+		}
+	}
+	//--------------------------------
 
 	fileNames := []string{}
 	for _, item := range resp.Contents {
@@ -563,6 +417,13 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 			continue
 		}
 		sigFileNames = append(sigFileNames, f)
+	}
+
+	// TODO: add this to the key config so its not hardcoded to 2.
+	// can default to 2 tho
+	threshold := 2
+	if len(sigFileNames) < threshold {
+		return fmt.Errorf("Insufficient signatures for broadcast. Requires %d, got %d", threshold, len(sigFileNames))
 	}
 
 	// read and unmarshal the sign data
@@ -616,6 +477,7 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 
 	// broadcast tx
 	// TODO: use --broadcast-mode block ?
+	// 	  otherwise the tx might still fail when it gets executed but we will delete it
 	cmdArgs = []string{"tx", "broadcast", signedJSON, "--node", nodeAddress}
 	cmd = exec.Command(binary, cmdArgs...)
 	b, err = cmd.CombinedOutput()
@@ -669,7 +531,7 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// TODO can we get a programmatic result from the tx?
+// TODO can we get a result from the tx without having to parse the tx response? use the API instead of CLI
 // Need to parse out the return code and the tx hash
 func parseTxResult(txResultBytes []byte) (int, string, error) {
 	spl := strings.Split(string(txResultBytes), "\n")
