@@ -1,12 +1,15 @@
 # Multisig
 
+---
+
 Disclaimer: Use at your risk, responsibility for damages (if any) to anyone
 resulting from the use of this software rest entirely with the user. The author
 is not responsible for any damage that its use could cause.
 
-WARNING: This tool is still new and under development. 
-We do use it regularly and try not to break APIs but cannot make any guarantees yet. 
-It's still a bit rough around the edges, so its best to use from a clean directory and with a clean S3 bucket.
+Note: use a released version. The `main` branch is an active development branch.
+The tool is still a bit rough around the edges, so its best to use from a clean directory and with a clean S3 bucket.
+
+---
 
 This is a tool for managing multisig txs with Cosmos-SDK based binaries and an
 AWS S3 bucket.
@@ -176,7 +179,8 @@ Then run
 multisig generate --tx unsigned.json --node <node address> <chain name> <key name>
 ```
 
-This will push the `unsigned.json` to the directory in the s3 bucket for the specified chain and key (ie. `/<chain name>/<key name>`). 
+This will push the `unsigned.json` to the directory in the s3 bucket for the specified chain and key (ie. `/<chain name>/<key name>/0`). 
+
 It will also fetch the account number and sequence number from the given `--node <node address>`,
 and push a file to the bucket called `signdata.json` containing the account number, sequence number, and chain ID.
 The sequence and account number can be overwriten or specified without a node
@@ -184,6 +188,23 @@ using the `--sequence` and `--account` flags
 
 Note if you use `--node` its shelling out to the `<binary> query account <address>`
 command and parsing the response.
+
+To push multiple txs for the same chain and key, use the `--additional` flag.
+Each additional tx will increment the path suffix and the sequence number. For
+example, after pushing two txs for the same chain/key pair, you'd have:
+
+```
+cosmos/
+cosmos/my-key/
+cosmos/my-key/0/signdata.json
+cosmos/my-key/0/unsigned.json
+cosmos/
+cosmos/my-key/
+cosmos/my-key/1/signdata.json
+cosmos/my-key/1/unsigned.json
+```
+
+To overwrite the first tx, use `--force`.
 
 ### List
 
@@ -210,9 +231,9 @@ juno/
 juno/mycorp-main/
 osmosis/
 osmosis/mycorp-main/
-osmosis/mycorp-main/eb.json
-osmosis/mycorp-main/signdata.json
-osmosis/mycorp-main/unsigned.json
+osmosis/mycorp-main/0/eb.json
+osmosis/mycorp-main/0/signdata.json
+osmosis/mycorp-main/0/unsigned.json
 ```
 
 This shows all the chain/key pairs that have been setup. All of them are empty
@@ -223,20 +244,24 @@ except `osmosis/mycorp-main` which has one signature (`eb.json`).
 To sign a tx:
 
 ```
-multisig sign --from <local signing key> <chain name> <key name> 
+multisig sign <chain name> <key name> --from <local signing key>  --index <tx
+index>
 ```
 
-Where `--from` is the name of the key in your local keystore, the same as you would provide to `--from` in `gaiad` or other Cosmos-SDK binaries.
+Where `--from` is the name of the key in your local keystore, the same as you would provide to `--from` in `gaiad` or other Cosmos-SDK binaries, and `--index` is the tx index to sign for (default 0).
 
 ### Broadcast
 
 To assemble the signed tx and broadcast it, run:
 
 ```
-multisig broadcast --node <node address> --description <description> <chain name> <key name> 
+multisig broadcast <chain name> <key name> --index <tx index>
 ```
 
-Where the `--node` flag can be used to overwrite what's in the config file and the `--description` flag is required.
+Where the `--index` is the tx index to sign for (default 0). Note txs must be
+broadcast in order.
+
+The `--node` flag can be used to overwrite what's in the config file.
 
 ### Raw
 
@@ -250,8 +275,6 @@ High Priority
 
 - make config globally accessible eg. in `~/.multisig/config.toml`
 - add denoms to chains and have `generate` validate txs are using correct denoms
-- `generate` should require confirmation when pushing a new file if there is
-  already data there
 - generate should check fees and gas are high enough
 - add multisig threshold to the config and ensure theres enough signatures
   before broadcasting
@@ -270,8 +293,6 @@ Mid Priority
   (ie. decoding the bech32 for each key and running `keys add` on the new
   binary)
 - test suite that spins up some local nodes and multisigs for testing
-- allow multiple txs to be started at a time per chain/key pair - this will take
-  some refactoring
 - proper error handling - sometimes we just print a message and return no error,
   but then the exit code is still 0
 - make tx and query response parsing more robust (currently shelling out to CLI
