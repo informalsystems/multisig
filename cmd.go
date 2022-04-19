@@ -120,6 +120,7 @@ var (
 	flagForce       bool
 	flagAdditional  bool
 	flagDescription string
+	flagDenom       string
 	flagTxIndex     int
 )
 
@@ -140,13 +141,20 @@ func init() {
 	txCmd.AddCommand(pushCmd)
 	txCmd.AddCommand(voteCmd)
 
-	txCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
-	txCmd.MarkFlagRequired("tx")
-	txCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
-	txCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
-	txCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
-	txCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
-	txCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+	pushCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
+	pushCmd.MarkFlagRequired("tx")
+	pushCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
+	pushCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
+	pushCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
+	pushCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
+	pushCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+
+	voteCmd.Flags().StringVarP(&flagDenom, "denom", "d", "", "fee denom, for offline creation")
+	voteCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
+	voteCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
+	voteCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
+	voteCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
+	voteCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
 
 	signCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to sign")
 	signCmd.Flags().StringVarP(&flagFrom, "from", "f", "", "name of your local key to sign with")

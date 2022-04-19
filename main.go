@@ -67,6 +67,19 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
+	nodeAddress := chain.Node
+	if flagNode != "" {
+		nodeAddress = flagNode
+	}
+
+	isDenomSet := cmd.Flags().Changed("denom")
+
+	noNode := nodeAddress == ""
+	if !isDenomSet && noNode {
+		fmt.Println("if --denom is not provided, a node must be specified in the config or with --node")
+		return nil
+	}
+
 	// TODO:
 	// node address?
 	// keyring backend?
@@ -81,11 +94,14 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 	gas := 300000
 	fee := 10000
 
-	// XXX: get the denom
-	// this is a massive hack. use the chain-registry instead :D
-	denom, err := getDenom(binary)
-	if err != nil {
-		return err
+	denom := flagDenom
+	if flagNode != "" {
+		// XXX: get the denom
+		// this is a massive hack. use the chain-registry instead :D
+		denom, err = getDenom(binary, flagNode)
+		if err != nil {
+			return err
+		}
 	}
 
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only

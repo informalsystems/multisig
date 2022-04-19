@@ -176,7 +176,7 @@ Generate a `unsigned.json` tx as you normally would for the given multisig addre
 Then run
 
 ```
-multisig tx push--tx unsigned.json --node <node address> <chain name> <key name>
+multisig tx push --tx unsigned.json --node <node address> <chain name> <key name>
 ```
 
 This will push the `unsigned.json` to the directory in the s3 bucket for the specified chain and key (ie. `/<chain name>/<key name>/0`). 

@@ -9,8 +9,8 @@ import (
 // XXX: get the denom
 // this is a massive hack. use the chain-registry instead :D
 // this just calls `<binary> query staking params` and parses out the staking token denom
-func getDenom(binary string) (string, error) {
-	cmdArgs := []string{"query", "staking", "params"}
+func getDenom(binary string, node string) (string, error) {
+	cmdArgs := []string{"query", "staking", "params", "--node", node}
 	execCmd := exec.Command(binary, cmdArgs...)
 	b, err := execCmd.CombinedOutput()
 	if err != nil {
