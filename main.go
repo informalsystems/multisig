@@ -110,6 +110,7 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		"--fees", fmt.Sprintf("%d%s", fee, denom),
 		"--gas", fmt.Sprintf("%d", gas),
 		"--generate-only",
+		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
 	// TODO: do we need these?
 	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
