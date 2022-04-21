@@ -41,6 +41,13 @@ var voteCmd = &cobra.Command{
 	RunE:  cmdVote,
 }
 
+var withdrawCmd = &cobra.Command{
+	Use:   "withdraw <chain name> <key name>",
+	Short: "generate a withdraw-all-rewards tx and push it",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdWithdraw,
+}
+
 var signCmd = &cobra.Command{
 	Use:   "sign <chain name> <key name>",
 	Short: "sign a tx",
@@ -140,6 +147,7 @@ func init() {
 
 	txCmd.AddCommand(pushCmd)
 	txCmd.AddCommand(voteCmd)
+	txCmd.AddCommand(withdrawCmd)
 
 	pushCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
 	pushCmd.MarkFlagRequired("tx")
@@ -155,6 +163,13 @@ func init() {
 	voteCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
 	voteCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
 	voteCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+
+	withdrawCmd.Flags().StringVarP(&flagDenom, "denom", "d", "", "fee denom, for offline creation")
+	withdrawCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
+	withdrawCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
+	withdrawCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
+	withdrawCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
+	withdrawCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
 
 	signCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to sign")
 	signCmd.Flags().StringVarP(&flagFrom, "from", "f", "", "name of your local key to sign with")
