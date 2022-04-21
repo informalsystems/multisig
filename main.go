@@ -47,6 +47,94 @@ func main() {
 	}
 }
 
+func cmdWithdraw(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	chain, found := conf.GetChain(chainName)
+	if !found {
+		return fmt.Errorf("chain %s not found in config", chainName)
+	}
+	key, found := conf.GetKey(keyName)
+	if !found {
+		return fmt.Errorf("key %s not found in config", keyName)
+	}
+
+	nodeAddress := chain.Node
+	if flagNode != "" {
+		nodeAddress = flagNode
+	}
+
+	isDenomSet := cmd.Flags().Changed("denom")
+
+	noNode := nodeAddress == ""
+	if !isDenomSet && noNode {
+		fmt.Println("if --denom is not provided, a node must be specified in the config or with --node")
+		return nil
+	}
+
+	// TODO:
+	// node address?
+	// keyring backend?
+
+	binary := chain.Binary
+	address, err := bech32ify(key.Address, chain.Prefix)
+	if err != nil {
+		return err
+	}
+
+	// TODO: config ?
+	gas := 300000
+	fee := 10000
+
+	denom := flagDenom
+	if flagNode != "" {
+		// XXX: get the denom
+		// this is a massive hack. use the chain-registry instead :D
+		denom, err = getDenom(binary, flagNode)
+		if err != nil {
+			return err
+		}
+	}
+
+	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
+	cmdArgs := []string{"tx", "distribution", "withdraw-all-rewards",
+		"--from", address,
+		"--fees", fmt.Sprintf("%d%s", fee, denom),
+		"--gas", fmt.Sprintf("%d", gas),
+		"--generate-only",
+		"--chain-id", fmt.Sprintf("%s", chain.ID),
+	}
+
+	if !noNode {
+		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+
+	// TODO: do we need these?
+	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
+	// cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	execCmd := exec.Command(binary, cmdArgs...)
+	fmt.Println(execCmd)
+	unsignedBytes, err := execCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(execCmd)
+		fmt.Println(string(unsignedBytes))
+		return err
+	}
+	fmt.Println(string(unsignedBytes))
+
+	return err
+	//return pushTx(chainName, keyName, unsignedBytes, cmd)
+}
+
 func cmdVote(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
@@ -112,6 +200,11 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
+
+	if !noNode {
+		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+	
 	// TODO: do we need these?
 	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
 	// cmdArgs = append(cmdArgs, "--node", nodeAddress)
