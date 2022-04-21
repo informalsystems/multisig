@@ -27,10 +27,10 @@ var txCmd = &cobra.Command{
 }
 
 var pushCmd = &cobra.Command{
-	Use:   "push <chain name> <key name>",
+	Use:   "push <unsigned tx file> <chain name> <key name>",
 	Short: "push the given unsigned tx with associated signing metadata",
 	Long:  "if a tx already exists for this chain and key, it will start using prefixes",
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.ExactArgs(3),
 	RunE:  cmdPush,
 }
 
@@ -149,8 +149,6 @@ func init() {
 	txCmd.AddCommand(voteCmd)
 	txCmd.AddCommand(withdrawCmd)
 
-	pushCmd.Flags().StringVarP(&flagTx, "tx", "t", "", "unsigned tx file")
-	pushCmd.MarkFlagRequired("tx")
 	pushCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
 	pushCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
 	pushCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")

@@ -177,10 +177,10 @@ or you can use commands to generate the transactions and push it automatically t
 
 ### tx push
 ```
-multisig tx push <chain name> <key name>
+multisig tx push <unsigned tx file> <chain name> <key name>
 ```
 
-This will push the `unsigned.json` to the directory in the s3 bucket for the specified chain and key (ie. `/<chain name>/<key name>/0`). 
+This will push the unsigned tx file (`e.g unsigned.json`) to the directory in the s3 bucket for the specified chain and key (ie. `/<chain name>/<key name>/0`). 
 
 It will also fetch the account number and sequence number from the given `--node <node address>`,
 and push a file to the bucket called `signdata.json` containing the account number, sequence number, and chain ID.
@@ -216,6 +216,15 @@ multisig tx vote <chain name> <key name> <proposal number> <vote option> [flags]
 ```
 
 This will generate a tx for a governance proposal vote and it will push it to s3 directly. You will need to specify the proposal number and the vote (e.g. yes, no). 
+You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from a node.
+
+### tx withdraw
+
+```
+multisig tx withdraw <chain name> <key name>
+```
+
+This will generate a tx for withdraw all rewards for the account, and it will push it to s3 directly.
 You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from a node.
 
 ## List

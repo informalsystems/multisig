@@ -204,7 +204,7 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 	if !noNode {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	}
-	
+
 	// TODO: do we need these?
 	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
 	// cmdArgs = append(cmdArgs, "--node", nodeAddress)
@@ -225,11 +225,10 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 }
 
 func cmdPush(cmd *cobra.Command, args []string) error {
-	chainName := args[0]
-	keyName := args[1]
+	txFile := args[0]
+	chainName := args[1]
+	keyName := args[2]
 
-	// read the unsigned tx file
-	txFile := flagTx
 	unsignedBytes, err := ioutil.ReadFile(txFile)
 	if err != nil {
 		return err
