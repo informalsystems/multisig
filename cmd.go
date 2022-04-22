@@ -58,6 +58,7 @@ var signCmd = &cobra.Command{
 var listCmd = &cobra.Command{
 	Use:   "list <chain name> <key name>",
 	Short: "list items in a directory",
+	Args:  cobra.ExactArgs(2),
 	RunE:  cmdList,
 }
 
@@ -132,12 +133,14 @@ var (
 )
 
 func init() {
+	// Main commands
 	rootCmd.AddCommand(txCmd)
 	rootCmd.AddCommand(signCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(broadcastCmd)
 	rootCmd.AddCommand(rawCmd)
 
+	// Raw commands
 	rawCmd.AddCommand(rawBech32Cmd)
 	rawCmd.AddCommand(rawCatCmd)
 	rawCmd.AddCommand(rawUpCmd)
@@ -145,37 +148,23 @@ func init() {
 	rawCmd.AddCommand(rawMkdirCmd)
 	rawCmd.AddCommand(rawDeleteCmd)
 
+	// Tx subcommands
 	txCmd.AddCommand(pushCmd)
 	txCmd.AddCommand(voteCmd)
 	txCmd.AddCommand(withdrawCmd)
 
-	pushCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
-	pushCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
-	pushCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
-	pushCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
-	pushCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+	// Add flags to commands
+	addTxCmdCommonFlags(pushCmd)
 
-	voteCmd.Flags().StringVarP(&flagDenom, "denom", "d", "", "fee denom, for offline creation")
-	voteCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
-	voteCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
-	voteCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
-	voteCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
-	voteCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+	addTxCmdCommonFlags(voteCmd)
+	addDenomFlags(voteCmd)
 
-	withdrawCmd.Flags().StringVarP(&flagDenom, "denom", "d", "", "fee denom, for offline creation")
-	withdrawCmd.Flags().IntVarP(&flagSequence, "sequence", "s", 0, "sequence number for the tx")
-	withdrawCmd.Flags().IntVarP(&flagAccount, "account", "a", 0, "account number for the tx")
-	withdrawCmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
-	withdrawCmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
-	withdrawCmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+	addTxCmdCommonFlags(withdrawCmd)
+	addDenomFlags(withdrawCmd)
 
-	signCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to sign")
-	signCmd.Flags().StringVarP(&flagFrom, "from", "f", "", "name of your local key to sign with")
-	signCmd.MarkFlagRequired("from")
+	addSignCmdFlags(signCmd)
 
-	listCmd.Flags().BoolVarP(&flagAll, "all", "a", false, "list files for all chains and keys")
+	addListCmdFlags(listCmd)
 
-	broadcastCmd.Flags().StringVarP(&flagNode, "node", "n", "", "node address to broadcast too. flag overrides config")
-	broadcastCmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to broadcast")
-	// broacastCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "description of the tx to be logged")
+	addBroadcastCmdFlags(broadcastCmd)
 }
