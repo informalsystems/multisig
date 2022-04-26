@@ -1,9 +1,36 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 )
+
+// ChainInfo simplified version of the chain information from the registry
+type ChainInfo struct {
+	Schema       string   `json:"$schema"`
+	ChainName    string   `json:"chain_name"`
+	ChainID      string   `json:"chain_id"`
+	PrettyName   string   `json:"pretty_name"`
+	Status       string   `json:"status"`
+	NetworkType  string   `json:"network_type"`
+	Bech32Prefix string   `json:"bech32_prefix"`
+	DaemonName   string   `json:"daemon_name"`
+	NodeHome     string   `json:"node_home"`
+	KeyAlgos     []string `json:"key_algos"`
+	Slip44       int      `json:"slip44"`
+	Fees         Fees     `json:"fees"`
+}
+
+type FeeTokens struct {
+	Denom            string `json:"denom"`
+	FixedMinGasPrice int    `json:"fixed_min_gas_price"`
+}
+type Fees struct {
+	FeeTokens []FeeTokens `json:"fee_tokens"`
+}
 
 // getDenom get the denom to be used in transaction fees
 // This method first will try to retrieve the denom from the configuration '[[chains]] denom'
@@ -21,7 +48,51 @@ func getDenom(conf *Config, chainName string) (string, error) {
 			return chain.Denom, nil
 		} else {
 			// Try chain registry
-			return "", errors.New(fmt.Sprintf("cannot find denom in the config or registry"))
+			denom, err := getDenomFromRegistry(chainName)
+			if err != nil {
+				return "", errors.New(fmt.Sprintf("cannot find denom in the config or registry: %s", err))
+			} else {
+				return denom, nil
+			}
 		}
 	}
+}
+
+func getDenomFromRegistry(chainName string) (string, error) {
+
+	chain := ChainInfo{}
+	denom := ""
+	url := fmt.Sprintf("https://raw.githubusercontent.com/cosmos/chain-registry/master/%s/chain.json", chainName)
+	method := "GET"
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		fmt.Println(err)
+		return denom, err
+	}
+	res, err := client.Do(req)
+	if (err != nil) || (res.StatusCode == 404) {
+		fmt.Println(err)
+		return denom, errors.New(fmt.Sprintf("cannot find denom in the chain registry, please ensure the chain name in the configuration file matches the folder name in the registry (https://github.com/cosmos/chain-registry)"))
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return denom, err
+	}
+	err = json.Unmarshal(body, &chain)
+	if err != nil {
+		fmt.Println(err)
+		return denom, err
+	}
+
+	// Assumption that the first fee token is the one used for paying the fees
+	if chain.Fees.FeeTokens[0].Denom == "" {
+		return "", errors.New(fmt.Sprintf("cannot find denom in the registry"))
+	}
+
+	return chain.Fees.FeeTokens[0].Denom, nil
 }
