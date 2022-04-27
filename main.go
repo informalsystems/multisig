@@ -65,9 +65,18 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	denom, err := getDenom(conf, chainName)
-	if err != nil {
-		return fmt.Errorf("denom not found in config or chain registry: %s", err)
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
 	}
 
 	nodeAddress := chain.Node
@@ -140,9 +149,18 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	denom, err := getDenom(conf, chainName)
-	if err != nil {
-		return fmt.Errorf("denom not found in config or chain registry: %s", err)
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
 	}
 
 	nodeAddress := chain.Node
