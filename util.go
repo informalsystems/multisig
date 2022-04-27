@@ -96,3 +96,19 @@ func getDenomFromRegistry(chainName string) (string, error) {
 
 	return chain.Fees.FeeTokens[0].Denom, nil
 }
+
+// Quick way to parse the denom from the json
+// without worrying on the different message types
+// that the unsigned may have. In the future this
+// might be improved parsing the right msg type
+func parseDenomFromJson(tx []byte) (string, error) {
+	var anyJson map[string]interface{}
+	err := json.Unmarshal(tx, &anyJson)
+	if err != nil {
+		return "", err
+	}
+	body := anyJson["body"].(map[string]interface{})
+	denom := body["messages"].([]interface{})[0].(map[string]interface{})["amount"].([]interface{})[0].(map[string]interface{})["denom"].(string)
+	return denom, nil
+
+}
