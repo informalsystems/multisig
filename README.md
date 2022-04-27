@@ -157,6 +157,7 @@ name = "cosmos"                 # name of the chain
 binary = "gaiad"                # name of binary
 prefix = "cosmos"               # bech32 prefix
 id = "cosmoshub-4"              # chain-id
+denom = "uatom"                 # denom used to pay fees
 node = "http://localhost:26657" # a synced node - only needed for `tx` and `broadcast` commands
 ```
 
@@ -216,7 +217,8 @@ multisig tx vote <chain name> <key name> <proposal number> <vote option> [flags]
 ```
 
 This will generate a tx for a governance proposal vote and it will push it to s3 directly. You will need to specify the proposal number and the vote (e.g. yes, no). 
-You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from a node.
+You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the 
+chain registry.
 
 ### tx withdraw
 
@@ -225,7 +227,8 @@ multisig tx withdraw <chain name> <key name>
 ```
 
 This will generate a tx for withdraw all rewards for the account, and it will push it to s3 directly.
-You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from a node.
+You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
+chain registry.
 
 ## List
 
