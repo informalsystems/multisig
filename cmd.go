@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -32,6 +33,38 @@ var pushCmd = &cobra.Command{
 	Long:  "if a tx already exists for this chain and key, it will start using prefixes",
 	Args:  cobra.ExactArgs(3),
 	RunE:  cmdPush,
+}
+
+var authzCmd = &cobra.Command{
+	Use:   "authz",
+	Short: "generate an unsigned authz tx (grant|exec)",
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
+}
+
+var authzGrantCmd = &cobra.Command{
+	Use:   "grant <chain name> <key name> <grantee address> <message-type (withdraw,commission,delegate)> <expiration (e.g in days, 30>",
+	Short: "generate an authz grant tx and push it",
+	Long: "\nThis commands allows you to generate an unsigned tx to grant authorization " +
+		"to a 'grantee' address that will be able to execute transactions as specified in " +
+		"the '<message-type>' parameter. The grant authz is the first step in order to " +
+		"authorize, after the grant tx is signed, then an 'authz exec' command will need to " +
+		"be signed and executed in order to enable the authorization on chain.\n" +
+		"Example: Grant withdraw authz permissions to a grantee (cosmos1add... address) for 30 days\n" +
+		"multisig tx grant cosmoshub my-key cosmos1adggsadfsadfffredffdssdf withdraw 30",
+	Args: func(cmd *cobra.Command, args []string) error {
+		numArgs := 5 // Update the number of arguments if command use changes
+		if len(args) != numArgs {
+			cmd.Help()
+			return fmt.Errorf("\n accepts %d arg(s), received %d", numArgs, len(args))
+		}
+		return nil
+	},
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          cmdGrantAuthz,
 }
 
 var voteCmd = &cobra.Command{
@@ -152,6 +185,10 @@ func init() {
 	txCmd.AddCommand(pushCmd)
 	txCmd.AddCommand(voteCmd)
 	txCmd.AddCommand(withdrawCmd)
+	txCmd.AddCommand(authzCmd)
+
+	// Authz subcommands
+	authzCmd.AddCommand(authzGrantCmd)
 
 	// Add flags to commands
 	addTxCmdCommonFlags(pushCmd)
@@ -161,6 +198,9 @@ func init() {
 
 	addTxCmdCommonFlags(withdrawCmd)
 	addDenomFlags(withdrawCmd)
+
+	addTxCmdCommonFlags(authzGrantCmd)
+	addDenomFlags(authzGrantCmd)
 
 	addSignCmdFlags(signCmd)
 
