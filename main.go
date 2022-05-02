@@ -137,6 +137,7 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 
 	msgType := args[3]
 	// Parse message-type parameter and generate proper tx msg-type
+	// Only support the messages we need for now (withdraw, delegate, commission, vote)
 	var cosmosMsg string
 	switch msgType {
 	case "withdraw":
@@ -144,10 +145,10 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 	case "delegate":
 		cosmosMsg = "/cosmos.staking.v1beta1.MsgDelegate"
 	case "commission":
-		//TODO: Confirm this is the right message
 		cosmosMsg = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
+	case "vote":
+		cosmosMsg = "/cosmos.gov.v1beta1.MsgVote"
 	default:
-		// Only support the messages we need for now ?
 		return fmt.Errorf("message type %s not supported", msgType)
 	}
 
