@@ -65,21 +65,26 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
+	}
+
 	nodeAddress := chain.Node
 	if flagNode != "" {
 		nodeAddress = flagNode
 	}
 
-	isDenomSet := cmd.Flags().Changed("denom")
-
-	noNode := nodeAddress == ""
-	if !isDenomSet && noNode {
-		fmt.Println("if --denom is not provided, a node must be specified in the config or with --node")
-		return nil
-	}
-
 	// TODO:
-	// node address?
 	// keyring backend?
 
 	binary := chain.Binary
@@ -92,16 +97,6 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 	gas := 300000
 	fee := 10000
 
-	denom := flagDenom
-	if flagNode != "" {
-		// XXX: get the denom
-		// this is a massive hack. use the chain-registry instead :D
-		denom, err = getDenom(binary, flagNode)
-		if err != nil {
-			return err
-		}
-	}
-
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
 	cmdArgs := []string{"tx", "distribution", "withdraw-all-rewards",
 		"--from", address,
@@ -111,13 +106,12 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
 
-	if !noNode {
+	if nodeAddress != "" {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	}
 
 	// TODO: do we need these?
 	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
-	// cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	execCmd := exec.Command(binary, cmdArgs...)
 	fmt.Println(execCmd)
 	unsignedBytes, err := execCmd.CombinedOutput()
@@ -155,21 +149,26 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
+	}
+
 	nodeAddress := chain.Node
 	if flagNode != "" {
 		nodeAddress = flagNode
 	}
 
-	isDenomSet := cmd.Flags().Changed("denom")
-
-	noNode := nodeAddress == ""
-	if !isDenomSet && noNode {
-		fmt.Println("if --denom is not provided, a node must be specified in the config or with --node")
-		return nil
-	}
-
 	// TODO:
-	// node address?
 	// keyring backend?
 
 	binary := chain.Binary
@@ -182,16 +181,6 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 	gas := 300000
 	fee := 10000
 
-	denom := flagDenom
-	if flagNode != "" {
-		// XXX: get the denom
-		// this is a massive hack. use the chain-registry instead :D
-		denom, err = getDenom(binary, flagNode)
-		if err != nil {
-			return err
-		}
-	}
-
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
 	cmdArgs := []string{"tx", "gov", "vote", propID, voteOption,
 		"--from", address,
@@ -201,13 +190,12 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
 
-	if !noNode {
+	if nodeAddress != "" {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	}
 
 	// TODO: do we need these?
 	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
-	// cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	execCmd := exec.Command(binary, cmdArgs...)
 	fmt.Println(execCmd)
 	unsignedBytes, err := execCmd.CombinedOutput()
@@ -232,6 +220,18 @@ func cmdPush(cmd *cobra.Command, args []string) error {
 	unsignedBytes, err := ioutil.ReadFile(txFile)
 	if err != nil {
 		return err
+	}
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	// Logic to emit a warning if the denoms don't match
+	denomInJson, err := parseDenomFromJson(unsignedBytes)
+	denomConfig, err := getDenom(conf, chainName)
+	if denomInJson != denomConfig {
+		fmt.Printf("WARNING: Denom '%s' in the unsigned json is different from the denom '%s' in the config or registry!\n", denomInJson, denomConfig)
 	}
 
 	return pushTx(chainName, keyName, unsignedBytes, cmd)
