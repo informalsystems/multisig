@@ -234,7 +234,7 @@ chain registry.
 ### tx authz grant
 
 ```
-multisig tx authz grant <chain name> <key name> <grantee address> <message-type> <expiration>
+multisig tx authz grant <chain name> <key name> <grantee address> <delegate|withdraw|commission|vote> <expiration in days>
 ```
 
 This will generate a tx to grant authz permissions to a particular account (grantee). You will also need to specify the message-type that 
