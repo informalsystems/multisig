@@ -89,12 +89,15 @@ func getDenomFromRegistry(chainName string) (string, error) {
 		return denom, err
 	}
 
-	// Assumption that the first fee token is the one used for paying the fees
-	if chain.Fees.FeeTokens[0].Denom == "" {
-		return "", errors.New(fmt.Sprintf("cannot find denom in the registry"))
+	// Assumption that the first fee token is the one used for paying
+	// the fees and the fee information is in the registry
+	if chain.Fees.FeeTokens != nil {
+		if chain.Fees.FeeTokens[0].Denom != "" {
+			return chain.Fees.FeeTokens[0].Denom, nil
+		}
 	}
 
-	return chain.Fees.FeeTokens[0].Denom, nil
+	return "", errors.New(fmt.Sprintf("cannot find denom fee information for the %s chain in the registry", chainName))
 }
 
 // Quick way to parse the denom from the json
