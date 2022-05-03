@@ -1,6 +1,6 @@
 # CHANGELOG
 
-# unreleased
+# v0.2.0 (May 3, 2022)
 
 - Allow multiple txs to be submited for a single (chain, key) pair using the
   `--additional` or `-x` flag. Paths now include a "txIndex" value, starting from 0.
@@ -10,7 +10,13 @@ This allows multiple sequential txs to be pushed and signed asynchronously.
 the tx to sign or broadcast. Txs must be broadcast in order but can be signed in
 any order.
 - Don't overwrite a tx without specifying `--force` or `-f`.
-
+- Removed `generate` command, the new `tx push` command has the same effect but a
+  better name.
+- Added `tx vote` and `tx withdraw` commands that generate the unsigned transaction.
+- Added `--denom` flag for fees. Denom can also be set in the configuration,
+  under `[[chains]]`. For example `denom=uatom`. If denom is not set anywhere,
+  it will be queried from the chain registry.
+- Added `tx authz grant` command to create transactions for granting authz persmissions.
 
 # v0.1.0 (Mar 8, 2022)
 
