@@ -38,7 +38,7 @@ var pushCmd = &cobra.Command{
 var authzCmd = &cobra.Command{
 	Use:   "authz",
 	Short: "generate an unsigned authz tx grant",
-	Args:  cobra.NoArgs,
+	Args:  cobra.NoArgs, // print long help from custom verification
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
