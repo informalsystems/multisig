@@ -31,6 +31,7 @@ Quick summary, with much more below:
   trusted
 - `multisig tx push` takes an unsigned tx file and pushes it to the s3 directory along with data needed for signing (eg. account number, sequence number, chain id)
 - `multisig tx vote` generate a vote tx and push it to s3 directory
+- `multisig tx authz` generate an authz grant tx (delegate, withdraw, commission, vote)
 - `multisig sign` fetches the unsigned tx and signing data for a given chain and key, signs it using the correct binary (eg. `gaiad tx sign unsigned.json ...`), and pushes the signature back to the directory
 - `multisig list` lists the files in a directory so you can see who has signed
 - `multisig broadcast` fetches all the data from a directory, compiles the signed tx (eg. `gaiad tx multisign unsigned.json ...`), broadcasts it using the configured node, and deletes all the files from the directory so signing can start fresh for a new tx
@@ -227,6 +228,18 @@ multisig tx withdraw <chain name> <key name>
 ```
 
 This will generate a tx for withdraw all rewards for the account, and it will push it to s3 directly.
+You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
+chain registry.
+
+### tx authz grant
+
+```
+multisig tx authz grant <chain name> <key name> <grantee address> <delegate|withdraw|commission|vote> <expiration in days>
+```
+
+This will generate a tx to grant authz permissions to a particular account (grantee). You will also need to specify the message-type that 
+you want to grant permission. Currently, only withdraw, commission, delegate, vote are supported. You also need to specify the expiration for
+this grant, for example to grant permissions for 30 days please specify '30' as the '<expiration> parameter.'
 You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
 chain registry.
 

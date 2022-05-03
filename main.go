@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -127,6 +128,116 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 
 	return err
 	//return pushTx(chainName, keyName, unsignedBytes, cmd)
+}
+
+func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
+	grantee := args[2]
+
+	msgType := args[3]
+	// Parse message-type parameter and generate proper tx msg-type
+	// Only support the messages we need for now (withdraw, delegate, commission, vote)
+	var cosmosMsg string
+	switch msgType {
+	case "withdraw":
+		cosmosMsg = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
+	case "delegate":
+		cosmosMsg = "/cosmos.staking.v1beta1.MsgDelegate"
+	case "commission":
+		cosmosMsg = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
+	case "vote":
+		cosmosMsg = "/cosmos.gov.v1beta1.MsgVote"
+	default:
+		return fmt.Errorf("message type %s not supported", msgType)
+	}
+
+	daysToExpiration := args[4]
+	expiration, err := strconv.Atoi(daysToExpiration)
+	if err != nil {
+		return fmt.Errorf("invalid days to expiration %s. Only specify the number of days to expire e.g. 30 (for 30 days)", daysToExpiration)
+	}
+
+	// Expiration from days to timestamp
+	expireTimestamp := time.Now().AddDate(0, 0, expiration).Unix()
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	chain, found := conf.GetChain(chainName)
+	if !found {
+		return fmt.Errorf("chain %s not found in config", chainName)
+	}
+	key, found := conf.GetKey(keyName)
+	if !found {
+		return fmt.Errorf("key %s not found in config", keyName)
+	}
+
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
+	}
+
+	nodeAddress := chain.Node
+	if flagNode != "" {
+		nodeAddress = flagNode
+	}
+
+	// TODO:
+	// keyring backend?
+
+	binary := chain.Binary
+	address, err := bech32ify(key.Address, chain.Prefix)
+	if err != nil {
+		return err
+	}
+
+	// TODO: config ?
+	gas := 300000
+	fee := 10000
+
+	// gaiad tx authz grant
+	cmdArgs := []string{"tx", "authz", "grant", grantee, "generic",
+		"--expiration", fmt.Sprintf("%d", expireTimestamp),
+		"--msg-type", cosmosMsg,
+		"--from", address,
+		"--fees", fmt.Sprintf("%d%s", fee, denom),
+		"--gas", fmt.Sprintf("%d", gas),
+		"--generate-only",
+		"--chain-id", fmt.Sprintf("%s", chain.ID),
+	}
+
+	if nodeAddress != "" {
+		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+
+	// TODO: do we need these?
+	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
+	execCmd := exec.Command(binary, cmdArgs...)
+	fmt.Println(execCmd)
+	unsignedBytes, err := execCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(execCmd)
+		fmt.Println(string(unsignedBytes))
+		return err
+	}
+	fmt.Println(string(unsignedBytes))
+
+	return pushTx(chainName, keyName, unsignedBytes, cmd)
 }
 
 func cmdVote(cmd *cobra.Command, args []string) error {
