@@ -45,7 +45,7 @@ var authzCmd = &cobra.Command{
 }
 
 var authzGrantCmd = &cobra.Command{
-	Use:   "grant <chain name> <key name> <grantee address> <message-type (withdraw,commission,delegate)> <expiration (e.g in days, 30>",
+	Use:   "grant <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote> <expiration days>",
 	Short: "generate an authz grant tx and push it",
 	Long: "\nThis commands allows you to generate an unsigned tx to grant authorization " +
 		"to a 'grantee' address that will be able to execute transactions as specified in " +
