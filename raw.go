@@ -101,28 +101,34 @@ func cmdRawCat(cobraCmd *cobra.Command, args []string) error {
 
 	txDir := filepath.Join(chainName, keyName)
 
-	files, err := awsDownloadFilesInDir(sess, conf.AWS, txDir)
+	// Get all the files in S3 bucket and display the contents
+	// of the files
+	filesInS3, err := awsListFilesInDir(sess, conf.AWS, chainName, keyName)
 	if err != nil {
 		return err
-	}
-
-	if len(files) == 0 {
-		fmt.Println("No files in", txDir)
-		return nil
-	}
-
-	fmt.Println("") // for spacing
-	for _, f := range files {
-		// cat the file
-		b, err := ioutil.ReadFile(f)
-		if err != nil {
-			return err
+	} else {
+		if len(filesInS3) == 0 {
+			fmt.Println("No files in", txDir)
+			return nil
 		}
-		fmt.Printf("---------- %s ----------\n", f)
-		fmt.Println("")
-		fmt.Println(string(b))
-		fmt.Println("")
-		os.Remove(f)
+		for _, file := range filesInS3 {
+			parts := strings.Split(file, "/")
+			path := strings.Join([]string{parts[0], parts[1], parts[2]}, "/")
+			filename := parts[3]
+			f, err := awsDownload(sess, conf.AWS, path, filename)
+			if err != nil {
+				return err
+			} else {
+				b, err := ioutil.ReadFile(f.Name())
+				if err != nil {
+					return err
+				}
+				fmt.Printf("\n|------------| %s |------------|", file)
+				fmt.Println("\n")
+				fmt.Println(string(b))
+				os.Remove(f.Name())
+			}
+		}
 	}
 
 	return nil
