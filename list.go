@@ -39,7 +39,7 @@ func listAll() error {
 	}
 
 	last := ""
-	sep := "---------------------------------"
+	sep := "----------------------------------------"
 	fmt.Println(sep)
 	for _, f := range files {
 		fDir := filepath.Dir(f)

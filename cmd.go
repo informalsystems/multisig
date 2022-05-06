@@ -91,7 +91,7 @@ var signCmd = &cobra.Command{
 var listCmd = &cobra.Command{
 	Use:   "list <chain name> <key name>",
 	Short: "list items in a directory",
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.MaximumNArgs(2),
 	RunE:  cmdList,
 }
 
