@@ -108,36 +108,33 @@ func parseDenomFromJson(tx []byte) (string, error) {
 	var anyJson map[string]interface{}
 	err := json.Unmarshal(tx, &anyJson)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot parse tx json, error %s", err)
 	}
-	authJson := anyJson["auth_info"]
-	if authJson != nil {
-		auth := authJson.(map[string]interface{})
-		feeJson := auth["fee"]
-		if feeJson != nil {
-			fee := feeJson.(map[string]interface{})
-			amountJson := fee["amount"]
-			if amountJson != nil {
-				amount := amountJson.([]interface{})
-				if len(amount) >= 1 {
-					first := amount[0].(map[string]interface{})
-					firstJson := first["denom"]
-					if firstJson != nil {
-						return firstJson.(string), nil
-					} else {
-						return "", fmt.Errorf("cannot parse tx json")
-					}
-				} else {
-					return "", fmt.Errorf("cannot parse tx json")
-				}
-			} else {
-				return "", fmt.Errorf("cannot parse tx json")
-			}
-		} else {
-			return "", fmt.Errorf("cannot parse tx json")
-		}
 
-	} else {
-		return "", fmt.Errorf("cannot parse tx json")
+	if anyJson["auth_info"] != nil {
+		auth, ok := anyJson["auth_info"].(map[string]interface{})
+		if ok {
+			if auth["fee"] != nil {
+				fee, ok := auth["fee"].(map[string]interface{})
+				if ok {
+					if fee["amount"] != nil {
+						value, ok := fee["amount"].([]interface{})
+						if ok {
+							if len(value) >= 1 {
+								firstValue, ok := value[0].(map[string]interface{})
+								if ok {
+									if firstValue["denom"] != nil {
+										return firstValue["denom"].(string), nil
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
+
+	// in case cannot find the denom value in the json, return an error
+	return "", fmt.Errorf("cannot parse json, cannot find denom value")
 }
