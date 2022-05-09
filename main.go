@@ -340,9 +340,13 @@ func cmdPush(cmd *cobra.Command, args []string) error {
 
 	// Logic to emit a warning if the denoms don't match
 	denomInJson, err := parseDenomFromJson(unsignedBytes)
-	denomConfig, err := getDenom(conf, chainName)
-	if denomInJson != denomConfig {
-		fmt.Printf("WARNING: Denom '%s' in the unsigned json is different from the denom '%s' in the config or registry!\n", denomInJson, denomConfig)
+	if err == nil {
+		denomConfig, err := getDenom(conf, chainName)
+		if err == nil {
+			if denomInJson != denomConfig {
+				fmt.Printf("WARNING: Denom '%s' in the unsigned json is different from the denom '%s' in the config or registry!\n", denomInJson, denomConfig)
+			}
+		}
 	}
 
 	return pushTx(chainName, keyName, unsignedBytes, cmd)
