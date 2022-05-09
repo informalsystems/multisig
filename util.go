@@ -108,10 +108,33 @@ func parseDenomFromJson(tx []byte) (string, error) {
 	var anyJson map[string]interface{}
 	err := json.Unmarshal(tx, &anyJson)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot parse tx json, error %s", err)
 	}
-	body := anyJson["body"].(map[string]interface{})
-	denom := body["messages"].([]interface{})[0].(map[string]interface{})["amount"].([]interface{})[0].(map[string]interface{})["denom"].(string)
-	return denom, nil
 
+	if anyJson["auth_info"] != nil {
+		auth, ok := anyJson["auth_info"].(map[string]interface{})
+		if ok {
+			if auth["fee"] != nil {
+				fee, ok := auth["fee"].(map[string]interface{})
+				if ok {
+					if fee["amount"] != nil {
+						value, ok := fee["amount"].([]interface{})
+						if ok {
+							if len(value) >= 1 {
+								firstValue, ok := value[0].(map[string]interface{})
+								if ok {
+									if firstValue["denom"] != nil {
+										return firstValue["denom"].(string), nil
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// in case cannot find the denom value in the json, return an error
+	return "", fmt.Errorf("cannot parse json, cannot find denom value")
 }
