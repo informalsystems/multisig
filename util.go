@@ -110,8 +110,34 @@ func parseDenomFromJson(tx []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	body := anyJson["body"].(map[string]interface{})
-	denom := body["messages"].([]interface{})[0].(map[string]interface{})["amount"].([]interface{})[0].(map[string]interface{})["denom"].(string)
-	return denom, nil
+	authJson := anyJson["auth_info"]
+	if authJson != nil {
+		auth := authJson.(map[string]interface{})
+		feeJson := auth["fee"]
+		if feeJson != nil {
+			fee := feeJson.(map[string]interface{})
+			amountJson := fee["amount"]
+			if amountJson != nil {
+				amount := amountJson.([]interface{})
+				if len(amount) >= 1 {
+					first := amount[0].(map[string]interface{})
+					firstJson := first["denom"]
+					if firstJson != nil {
+						return firstJson.(string), nil
+					} else {
+						return "", fmt.Errorf("cannot parse tx json")
+					}
+				} else {
+					return "", fmt.Errorf("cannot parse tx json")
+				}
+			} else {
+				return "", fmt.Errorf("cannot parse tx json")
+			}
+		} else {
+			return "", fmt.Errorf("cannot parse tx json")
+		}
 
+	} else {
+		return "", fmt.Errorf("cannot parse tx json")
+	}
 }
