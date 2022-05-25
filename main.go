@@ -126,8 +126,7 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println(string(unsignedBytes))
 
-	return err
-	//return pushTx(chainName, keyName, unsignedBytes, cmd)
+	return pushTx(chainName, keyName, unsignedBytes, cmd)
 }
 
 func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
@@ -430,7 +429,7 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 		return err
 	}
 
-	// if theres already files there and we dont specify -f or -x, return
+	// if there is already files there and we don't specify -f or -x, return
 	if len(files) > 0 && !(flagForce || flagAdditional) {
 		return fmt.Errorf("Files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
 	} else if len(files) == 0 && (flagForce || flagAdditional) {
