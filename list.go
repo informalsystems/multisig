@@ -38,6 +38,12 @@ func listAll() error {
 		files = append(files, key)
 	}
 
+	// Check if there is anything in the bucket, if not then return
+	if len(files) == 0 {
+		fmt.Printf("no files in %s bucket, nothing to list\n", conf.AWS.Bucket)
+		return nil
+	}
+
 	last := ""
 	sep := "----------------------------------------"
 	fmt.Println(sep)

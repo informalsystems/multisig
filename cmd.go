@@ -102,6 +102,13 @@ var broadcastCmd = &cobra.Command{
 	RunE:  cmdBroadcast,
 }
 
+var deleteCmd = &cobra.Command{
+	Use:   "delete <chain name> <key name>",
+	Short: "delete a tx",
+	Args:  cobra.ExactArgs(2),
+	RunE:  cmdDelete,
+}
+
 var rawCmd = &cobra.Command{
 	Use:   "raw <cmd>",
 	Short: "raw operations on the s3 bucket",
@@ -172,6 +179,7 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(broadcastCmd)
 	rootCmd.AddCommand(rawCmd)
+	rootCmd.AddCommand(deleteCmd)
 
 	// Raw commands
 	rawCmd.AddCommand(rawBech32Cmd)
@@ -207,4 +215,6 @@ func init() {
 	addListCmdFlags(listCmd)
 
 	addBroadcastCmdFlags(broadcastCmd)
+
+	addDeleteCmdFlags(deleteCmd)
 }

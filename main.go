@@ -48,6 +48,78 @@ func main() {
 	}
 }
 
+func cmdDelete(cobraCmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	txIndex := flagTxIndex
+	txDir := filepath.Join(chainName, keyName, fmt.Sprintf("%d", txIndex))
+
+	sess := awsSession(conf.AWS)
+	svc := s3.New(sess)
+
+	// list all items in bucket
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
+	if err != nil {
+		return err
+	}
+
+	fileNames := []string{}
+	for _, item := range resp.Contents {
+		itemKey := *item.Key
+		if strings.HasPrefix(itemKey, txDir) && !strings.HasSuffix(itemKey, "/") {
+			base := filepath.Base(itemKey)
+
+			// sanity check
+			if len(base) == 0 {
+				return fmt.Errorf("%s had empty base", itemKey)
+			}
+
+			fileNames = append(fileNames, base)
+		}
+	}
+
+	// Check if there is anything in the bucket, if not then return
+	if len(fileNames) == 0 {
+		fmt.Printf("no files in %s, nothing will be deleted\n", txDir)
+		return nil
+	}
+
+	sep := "---------------------------------------------------------------------"
+	fmt.Println(sep)
+	// cleanup txDir in the bucket by deleting everything
+	for _, f := range fileNames {
+		awsString := aws.String(filepath.Join(txDir, f))
+		_, err = svc.DeleteObject(&s3.DeleteObjectInput{
+			Bucket: aws.String(conf.AWS.Bucket),
+			Key:    awsString,
+		})
+		if err != nil {
+			return err
+		} else {
+			fmt.Printf("%v will be deleted...\n", *awsString)
+		}
+
+		err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+			Bucket: aws.String(conf.AWS.Bucket),
+			Key:    awsString,
+		})
+		if err != nil {
+			return err
+		} else {
+			fmt.Printf("deleted %v !\n", *awsString)
+			fmt.Println(sep)
+		}
+	}
+
+	return nil
+}
+
 func cmdWithdraw(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]

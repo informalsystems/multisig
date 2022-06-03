@@ -34,3 +34,8 @@ func addBroadcastCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to broadcast")
 	// broacastCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "description of the tx to be logged")
 }
+
+// addDeleteCmdFlags defines common flags to be used in the delete command
+func addDeleteCmdFlags(cmd *cobra.Command) {
+	cmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to delete")
+}
