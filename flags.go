@@ -9,6 +9,7 @@ func addTxCmdCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&flagNode, "node", "n", "", "tendermint rpc node to get sequence and account number from")
 	cmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
 	cmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
+	cmd.Flags().StringVarP(&flagDescription, "description", "i", "", "information about the transaction")
 }
 
 // addDenomFlags defines a denom flag to be reused across commands
