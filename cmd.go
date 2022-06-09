@@ -201,8 +201,6 @@ func init() {
 	// Add flags to commands
 	addTxCmdCommonFlags(pushCmd)
 
-	addTxPushCmdCommonFlags(pushCmd)
-
 	addTxCmdCommonFlags(voteCmd)
 	addDenomFlags(voteCmd)
 
