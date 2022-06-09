@@ -11,6 +11,11 @@ func addTxCmdCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
 }
 
+// addPTxPushCmdCommonFlags defines common flags to be reused in the tx push commands
+func addTxPushCmdCommonFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&flagDescription, "description", "d", "", "additional information about the transaction")
+}
+
 // addDenomFlags defines a denom flag to be reused across commands
 func addDenomFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&flagDenom, "denom", "d", "", "fee denom, for offline creation")
