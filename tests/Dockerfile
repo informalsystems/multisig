@@ -3,7 +3,7 @@
 FROM minio/minio
 
 # Prerequencies for installation
-RUN microdnf install go git make which
+RUN microdnf install go git make which jq
 ENV HOME=/root
 ENV PATH=$PATH:$HOME/go/bin
 
