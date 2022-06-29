@@ -16,10 +16,10 @@ gaiad tx bank send \
     --chain-id=testhub \
     --generate-only > unsignedTx.json
 
-cd user1
+cd "$HOME/user1"
 multisig tx push ../unsignedTx.json cosmos test
 multisig sign cosmos test --from test_key_1
-cd ../user2
+cd "$HOME/user2"
 multisig sign cosmos test --from test_key_2
 multisig broadcast cosmos test
 
