@@ -9,6 +9,21 @@ setup() {
     denom="uatom"
 }
 
+wait_till_next_block() {
+    prev_latest_block_hash=$(gaiad status 2>&1 | jq -r ".SyncInfo.latest_block_hash")
+    for i in {1..10}
+    do
+        latest_block_hash=$(gaiad status 2>&1 | jq -r ".SyncInfo.latest_block_hash")
+        if [ "$latest_block_hash" != "$prev_latest_block_hash" ]
+        then
+            echo "Next block appeared"
+            break
+        fi
+        echo "Waiting for next block"
+        sleep 1
+    done
+}
+
 @test "Positive scenario" {
     prev_balance=$(gaiad query bank balances "$test_addr_1" --output json  \
         | jq -r ".balances[] | select(.denom == \"$denom\") | .amount")
@@ -30,7 +45,7 @@ setup() {
     multisig sign cosmos test --from test_key_2
     multisig broadcast cosmos test
 
-    sleep 7
+    wait_till_next_block
 
     new_balance=$(gaiad query bank balances "$test_addr_1" --output json  \
         | jq -r ".balances[] | select(.denom == \"$denom\") | .amount")
