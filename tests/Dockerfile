@@ -24,6 +24,11 @@ WORKDIR $HOME
 COPY ["tests/configure_gaia.sh", "."]
 RUN ["/bin/bash", "./configure_gaia.sh"]
 
+WORKDIR $HOME
+RUN ["git", "clone", "https://github.com/bats-core/bats-core"]
+RUN ["git", "clone", "https://github.com/bats-core/bats-support"]
+RUN ["git", "clone", "https://github.com/bats-core/bats-assert"]
+
 # Copy configure_minio but don't run it yet since it's possible only after minio launch
 # (which is made on start)
 WORKDIR $HOME

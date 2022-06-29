@@ -1,35 +1,38 @@
 #!/bin/bash
 
-test_addr_1=$(gaiad keys show test_key_1 --keyring-backend test --output json | jq -r ".address")
-multisig_addr_1=$(gaiad keys show multisig_test --keyring-backend test --output json | jq -r ".address")
-denom="uatom"
+setup() {
+    load "$HOME/bats-support/load"
+    load "$HOME/bats-assert/load"
 
-prev_balance=$(gaiad query bank balances "$test_addr_1" --output json  \
-    | jq -r ".balances[] | select(.denom == \"$denom\") | .amount")
+    test_addr_1=$(gaiad keys show test_key_1 --keyring-backend test --output json | jq -r ".address")
+    multisig_addr_1=$(gaiad keys show multisig_test --keyring-backend test --output json | jq -r ".address")
+    denom="uatom"
+}
 
-gaiad tx bank send \
-    "$multisig_addr_1" \
-    "$test_addr_1" \
-    "1$denom" \
-    --gas=200000 \
-    --fees="1$denom" \
-    --chain-id=testhub \
-    --generate-only > unsignedTx.json
+@test "Positive scenario" {
+    prev_balance=$(gaiad query bank balances "$test_addr_1" --output json  \
+        | jq -r ".balances[] | select(.denom == \"$denom\") | .amount")
 
-cd "$HOME/user1"
-multisig tx push ../unsignedTx.json cosmos test
-multisig sign cosmos test --from test_key_1
-cd "$HOME/user2"
-multisig sign cosmos test --from test_key_2
-multisig broadcast cosmos test
+    gaiad tx bank send \
+        "$multisig_addr_1" \
+        "$test_addr_1" \
+        "1$denom" \
+        --gas=200000 \
+        --fees="1$denom" \
+        --chain-id=testhub \
+        --generate-only > unsignedTx.json
 
-sleep 7
+    cd "$HOME/user1"
+    multisig tx push ../unsignedTx.json cosmos test
+    multisig sign cosmos test --from test_key_1
+    cd "$HOME/user2"
+    multisig sign cosmos test --from test_key_2
+    multisig broadcast cosmos test
 
-new_balance=$(gaiad query bank balances "$test_addr_1" --output json  \
-    | jq -r ".balances[] | select(.denom == \"$denom\") | .amount")
+    sleep 7
 
-if (( new_balance > prev_balance )); then
-    echo "Success"
-else
-    echo "Fail"
-fi
+    new_balance=$(gaiad query bank balances "$test_addr_1" --output json  \
+        | jq -r ".balances[] | select(.denom == \"$denom\") | .amount")
+
+    assert bash -c "(( $new_balance > $prev_balance ))"
+}
