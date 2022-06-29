@@ -15,6 +15,6 @@ do
     sleep 1
 done
 
-/bin/bash configure_minio.sh > minio_conf.log
+/bin/bash multisig/tests/configure_minio.sh > minio_conf.log
 
-./bats-core/bin/bats test_positive.sh
+./bats-core/bin/bats multisig/tests/test_positive.sh

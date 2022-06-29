@@ -19,34 +19,23 @@ RUN ["make", "install"]
 WORKDIR $HOME
 RUN ["/bin/bash", "rm", "-rf", "gaia"]
 
-# Configure gaia and add accounts to keychain
-WORKDIR $HOME
-COPY ["tests/configure_gaia.sh", "."]
-RUN ["/bin/bash", "./configure_gaia.sh"]
-
 WORKDIR $HOME
 RUN ["git", "clone", "https://github.com/bats-core/bats-core"]
 RUN ["git", "clone", "https://github.com/bats-core/bats-support"]
 RUN ["git", "clone", "https://github.com/bats-core/bats-assert"]
 
-# Copy configure_minio but don't run it yet since it's possible only after minio launch
-# (which is made on start)
-WORKDIR $HOME
-COPY ["tests/configure_minio.sh", "."]
-
-# Copy files and build multisig tool itself
+# Copy files
 WORKDIR $HOME
 RUN ["mkdir", "multisig"]
 COPY [".", "multisig"]
+
+# Configure gaia and add accounts to keychain
+WORKDIR $HOME
+RUN ["/bin/bash", "./multisig/tests/configure_gaia.sh"]
+
 WORKDIR multisig
 RUN ["go", "install"]
 
 WORKDIR $HOME
-COPY ["tests/config_1.toml", "./user1/config.toml"]
-COPY ["tests/config_2.toml", "./user2/config.toml"]
-COPY ["tests/test_positive.sh", "."]
-
-WORKDIR $HOME
-COPY ["tests/start.sh", "."]
 ENTRYPOINT ["/bin/bash"]
-CMD ["start.sh"]
+CMD ["./multisig/tests/start.sh"]

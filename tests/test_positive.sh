@@ -22,10 +22,11 @@ setup() {
         --chain-id=testhub \
         --generate-only > unsignedTx.json
 
-    cd "$HOME/user1"
-    multisig tx push ../unsignedTx.json cosmos test
+    cd "$HOME/multisig/tests/user1"
+    multisig tx push "$HOME/unsignedTx.json" cosmos test
     multisig sign cosmos test --from test_key_1
-    cd "$HOME/user2"
+
+    cd "$HOME/multisig/tests/user2"
     multisig sign cosmos test --from test_key_2
     multisig broadcast cosmos test
 
