@@ -11,7 +11,7 @@ setup() {
 
 wait_till_next_block() {
     prev_latest_block_hash=$(gaiad status 2>&1 | jq -r ".SyncInfo.latest_block_hash")
-    for i in {1..10}
+    for _ in {1..10}
     do
         latest_block_hash=$(gaiad status 2>&1 | jq -r ".SyncInfo.latest_block_hash")
         if [ "$latest_block_hash" != "$prev_latest_block_hash" ]

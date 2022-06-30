@@ -3,7 +3,7 @@
 gaiad start --minimum-gas-prices 0atom --mode validator &> gaia.log &
 minio server /data --console-address ":9001" > minio.log &
 
-for i in {1..10}
+for _ in {1..10}
 do
     latest_block_hash=$(gaiad status 2>&1 | jq -r ".SyncInfo.latest_block_hash")
     if [ "$latest_block_hash" != "" ]
