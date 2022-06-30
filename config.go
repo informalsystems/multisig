@@ -27,6 +27,7 @@ type Key struct {
 
 // Credentials for AWS
 type AWS struct {
+	Address      string
 	Bucket       string
 	BucketRegion string
 	Pub          string

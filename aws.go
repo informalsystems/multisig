@@ -15,10 +15,21 @@ import (
 
 // setup a new aws session
 func awsSession(conf AWS) *session.Session {
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(conf.BucketRegion),
-		Credentials: credentials.NewStaticCredentials(conf.Pub, conf.Priv, ""),
-	})
+	var sess *session.Session
+	var err error
+	if conf.Address != "" {
+		sess, err = session.NewSession(&aws.Config{
+			Endpoint:         aws.String(conf.Address),
+			Region:           aws.String(conf.BucketRegion),
+			Credentials:      credentials.NewStaticCredentials(conf.Pub, conf.Priv, ""),
+			S3ForcePathStyle: aws.Bool(true),
+		})
+	} else {
+		sess, err = session.NewSession(&aws.Config{
+			Region:      aws.String(conf.BucketRegion),
+			Credentials: credentials.NewStaticCredentials(conf.Pub, conf.Priv, ""),
+		})
+	}
 	if err != nil {
 		// TODO
 		panic(err)
