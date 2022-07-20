@@ -925,8 +925,7 @@ func parseTxResult(txResultBytes []byte) (int, string, error) {
 	return code, txhash, nil
 }
 
-// TODO can we get this more programmatically ?
-// Need to parse out the account and sequence number
+// Parse out the account and sequence number
 // Return: accountNumber, sequenceNumber, error
 func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 	var (
