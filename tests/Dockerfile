@@ -5,6 +5,7 @@ FROM registry.access.redhat.com/ubi8/go-toolset AS go-builder
 # Building gaia
 RUN ["git", "clone", "https://github.com/cosmos/gaia"]
 WORKDIR gaia
+RUN ["git", "checkout", "v7.0.2"]
 RUN make install
 
 # Minio client is needed to configure user/bucket

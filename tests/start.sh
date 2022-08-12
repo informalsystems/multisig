@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gaiad start --minimum-gas-prices 0atom --mode validator &> gaia.log &
+gaiad start --minimum-gas-prices 0atom &> gaia.log &
 minio server /data --console-address ":9001" > minio.log &
 
 for _ in {1..10}
