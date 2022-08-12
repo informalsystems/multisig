@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/go-toolset AS go-builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.17.12-3 AS go-builder
 
 #ENV GOBIN=/root/go/bin
 
@@ -17,7 +17,7 @@ COPY [".", "multisig"]
 WORKDIR multisig
 RUN ["go", "install"]
 
-FROM minio/minio
+FROM minio/minio:RELEASE.2022-08-11T04-37-28Z
 
 # Prerequencies
 RUN microdnf install git jq
