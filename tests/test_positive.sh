@@ -73,6 +73,7 @@ get_balance(){
     multisig sign cosmos test_2_of_3 --from test_key_1
 
     # multisig should fail and return "Insufficient signatures for broadcast"
+    # using "run bash -c" because we expect the command to fail but don't want script to exit
     run bash -c "multisig broadcast cosmos test_2_of_3"
     assert_failure
 }
@@ -95,6 +96,7 @@ get_balance(){
     multisig sign cosmos test_3_of_4 --from test_key_2
 
     # multisig should fail and return "Insufficient signatures for broadcast"
+    # using "run bash -c" because we expect the command to fail but don't want script to exit
     run bash -c "multisig broadcast cosmos test_3_of_4"
     assert_failure
 }

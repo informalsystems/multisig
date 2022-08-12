@@ -32,4 +32,3 @@ gaiad add-genesis-account cosmos19mxmee2hyl23kpa39al2d4ztzzyuh3mletg4vk 10000000
 
 gaiad gentx test_key_1 10000000000stake --chain-id testhub --keyring-backend test
 gaiad collect-gentxs
-
