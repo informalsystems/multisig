@@ -21,9 +21,14 @@ priv = "test_secret_key"          # Secret Access Key
 ########################
 
 [[keys]]
-name = "test"       # name of this multisig key - same for everyone
-address = "cosmos1mmq6knly90q9pqfx36srl3gnls3ahdm7s93g2q"    # bech32 address of the key - same for everyone
-localname = "multisig_test"  # name of this key in a signer's local keystore - can be different for everyone
+name = "test_2_of_3"
+address = "cosmos1mmq6knly90q9pqfx36srl3gnls3ahdm7s93g2q"
+localname = "multisig_test_2_of_3"
+
+[[keys]]
+name = "test_3_of_4"
+address = "cosmos19mxmee2hyl23kpa39al2d4ztzzyuh3mletg4vk"
+localname = "multisig_test_3_of_4"
 
 ########################
 # Chains we sign for
