@@ -41,7 +41,6 @@ get_balance(){
         --chain-id=testhub \
         --generate-only > unsignedTx.json
 
-
     cd "$HOME/multisig/tests/user1"
     multisig tx push "$HOME/unsignedTx.json" cosmos test
     multisig sign cosmos test --from test_key_1
@@ -56,4 +55,23 @@ get_balance(){
     new_balance=$(get_balance "$test_addr_1")
 
     assert bash -c "(( $new_balance > $prev_balance ))"
+}
+
+@test "Lower than threshold (2/3)" {
+    gaiad tx bank send \
+        "$multisig_addr_1" \
+        "$test_addr_1" \
+        "1$denom" \
+        --gas=200000 \
+        --fees="1$denom" \
+        --chain-id=testhub \
+        --generate-only > unsignedTx.json
+
+    cd "$HOME/multisig/tests/user1"
+    multisig tx push "$HOME/unsignedTx.json" cosmos test
+    multisig sign cosmos test --from test_key_1
+
+    # multisig should fail and return "Insufficient signatures for broadcast"
+    run bash -c "multisig broadcast cosmos test"
+    assert_failure
 }
