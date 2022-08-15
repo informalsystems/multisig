@@ -19,10 +19,18 @@ printf 'snack invest february abstract bullet stock repeat clever fiction steel 
   | gaiad keys add test_key_4 --recover --keyring-backend test
 
 # cosmos1mmq6knly90q9pqfx36srl3gnls3ahdm7s93g2q
-gaiad keys add --multisig=test_key_1,test_key_2,test_key_3 --multisig-threshold=2 --keyring-backend test multisig_test_2_of_3
+gaiad keys add \
+  --multisig=test_key_1,test_key_2,test_key_3 \
+  --multisig-threshold=2 \
+  --keyring-backend test \
+  multisig_test_2_of_3
 
 # cosmos19mxmee2hyl23kpa39al2d4ztzzyuh3mletg4vk
-gaiad keys add --multisig=test_key_1,test_key_2,test_key_3,test_key_4 --multisig-threshold=3 --keyring-backend test multisig_test_3_of_4
+gaiad keys add \
+  --multisig=test_key_1,test_key_2,test_key_3,test_key_4 \
+  --multisig-threshold=3 \
+  --keyring-backend test \
+  multisig_test_3_of_4
 
 gaiad add-genesis-account cosmos14eadktsf4zzah6har7h7a46tunnj7rq7lmppy5 10000000000stake,1000000000000uatom
 gaiad add-genesis-account cosmos18eq7nwggdmpxr0d4a23rmdued6jwz5mzwn8vjz 1000000000000uatom

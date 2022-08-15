@@ -1,7 +1,5 @@
 FROM registry.access.redhat.com/ubi8/go-toolset:1.17.12-3 AS go-builder
 
-#ENV GOBIN=/root/go/bin
-
 # Building gaia
 RUN git clone https://github.com/cosmos/gaia
 WORKDIR gaia

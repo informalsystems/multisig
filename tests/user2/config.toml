@@ -1,42 +1,26 @@
-########################
-# General configuration
-########################
-
-
-# username, eg. initials - for naming your signatures
 user = "user2"
 
-# gaiad uses "os" by default, but I use "test"
 keyringbackend = "test"
 
-# aws credentials
 [aws]
 address = "http://127.0.0.1:9000/"
-bucket = "multisig-test"        # s3 bucket name
-pub = "test_access_key"           # Access Key ID
-priv = "test_secret_key"          # Secret Access Key
-
-########################
-# Multisig keys we want to sign with (potentially on many chains!)
-########################
+bucket = "multisig-test-bucket"
+pub = "test_access_key"
+priv = "test_secret_key"
 
 [[keys]]
-name = "test_2_of_3"
+name = "test_multisig_2_of_3"
 address = "cosmos1mmq6knly90q9pqfx36srl3gnls3ahdm7s93g2q"
 localname = "multisig_test_2_of_3"
 
 [[keys]]
-name = "test_3_of_4"
+name = "test_multisig_3_of_4"
 address = "cosmos19mxmee2hyl23kpa39al2d4ztzzyuh3mletg4vk"
 localname = "multisig_test_3_of_4"
 
-########################
-# Chains we sign for
-########################
-
 [[chains]]
-name = "cosmos"                 # name of the chain
-binary = "gaiad"                # name of binary
-prefix = "cosmos"               # bech32 prefix
-id = "testhub"              # chain-id
-node = "http://localhost:26657" # a synced node - only needed for `generate` and `broadcast` commands
+name = "cosmos"
+binary = "gaiad"
+prefix = "cosmos"
+id = "testhub"
+node = "http://localhost:26657"
