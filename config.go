@@ -36,11 +36,12 @@ type AWS struct {
 // Config file
 type Config struct {
 	User           string
-	KeyringBackend string // TODO: how to support snake_case?
-
-	AWS    AWS
-	Keys   []Key
-	Chains []Chain
+	KeyringBackend string
+	DefaultFee     int64
+	DefaultGas     int64
+	AWS            AWS
+	Keys           []Key
+	Chains         []Chain
 }
 
 func (c *Config) GetChain(name string) (Chain, bool) {
@@ -76,6 +77,14 @@ func loadConfig(filename string) (*Config, error) {
 
 	if c.AWS.BucketRegion == "" {
 		c.AWS.BucketRegion = defaultBucketRegion
+	}
+
+	if c.DefaultGas == 0 {
+		c.DefaultGas = int64(defaultGas)
+	}
+
+	if c.DefaultFee == 0 {
+		c.DefaultFee = int64(defaultFee)
 	}
 
 	return c, nil
