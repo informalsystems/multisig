@@ -968,6 +968,21 @@ func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 			return 0, 0, fmt.Errorf("sequence number is not an integer")
 		}
 		return accInt, seqInt, nil
+	} else if acctType.Type == "/cosmos.vesting.v1beta1.ContinuousVestingAccount" {
+		var cva ContinuousVestingAccount
+		err := json.Unmarshal(queryResponseBytes, &cva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error un-marshalling continuous vesting account")
+		}
+		accInt, err := strconv.Atoi(cva.BaseVestingAccount.BaseAccount.AccountNumber)
+		if err != nil {
+			return 0, 0, fmt.Errorf("account number is not an integer")
+		}
+		seqInt, err := strconv.Atoi(cva.BaseVestingAccount.BaseAccount.Sequence)
+		if err != nil {
+			return 0, 0, fmt.Errorf("sequence number is not an integer")
+		}
+		return accInt, seqInt, nil
 	} else {
 		return accInt, seqInt, fmt.Errorf("cannot parse account type")
 	}
