@@ -69,7 +69,7 @@ func listDir(args []string) error {
 	chainName := args[0]
 	keyName := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}

@@ -26,7 +26,7 @@ func cmdRawUp(cobraCmd *cobra.Command, args []string) error {
 	local := args[0]
 	remote := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func cmdRawDown(cobraCmd *cobra.Command, args []string) error {
 	remote := args[0]
 	local := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func cmdRawCat(cobraCmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func cmdRawCat(cobraCmd *cobra.Command, args []string) error {
 func cmdRawDelete(cobraCmd *cobra.Command, args []string) error {
 	filePath := args[0]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func cmdRawMkdir(cobraCmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}

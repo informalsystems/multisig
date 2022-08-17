@@ -23,7 +23,6 @@ import (
 var (
 
 	// config file - expected to be in the present working directory
-	configFile              = "config.toml"
 	defaultLocalConfigFile  = "config.toml"
 	defaultGlobalConfigFile = ".multisig/config.toml"
 
@@ -54,7 +53,7 @@ func cmdDelete(cobraCmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -126,7 +125,7 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -234,7 +233,7 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 	// Expiration from days to timestamp
 	expireTimestamp := time.Now().AddDate(0, 0, expiration).Unix()
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -319,7 +318,7 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 	propID := args[2]
 	voteOption := args[3]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -406,7 +405,7 @@ func cmdPush(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -431,7 +430,7 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 		return fmt.Errorf("Cannot specify both --force and --additional")
 	}
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -585,7 +584,7 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 	from := flagFrom
 	txIndex := flagTxIndex
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -700,7 +699,7 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
