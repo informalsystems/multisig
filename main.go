@@ -23,7 +23,9 @@ import (
 var (
 
 	// config file - expected to be in the present working directory
-	configFile = "config.toml"
+	configFile              = "config.toml"
+	defaultLocalConfigFile  = "config.toml"
+	defaultGlobalConfigFile = ".multisig/config.toml"
 
 	// files for signing - we use these filenames in the local working directory and in the remote bucket
 	unsignedJSON = "unsigned.json"

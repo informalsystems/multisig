@@ -100,3 +100,25 @@ get_balance(){
     run bash -c "multisig broadcast cosmos test_multisig_3_of_4"
     assert_failure
 }
+
+@test "Config file choise" {
+    mkdir "$HOME/multisig/tests/config_tests"
+    cd    "$HOME/multisig/tests/config_tests"
+
+    run bash -c "multisig list --all"
+    assert_failure # no config provided
+
+    run bash -c "multisig list --all --config $HOME/multisig/tests/user2/config.toml"
+    assert_success # config specified explicitly
+
+    cp "$HOME/multisig/tests/user2/config.toml" .
+    run bash -c "multisig list --all"
+    assert_success # default local config is used
+
+    mkdir ~/.multisig
+    mv config.toml ~/.multisig/
+    run bash -c "multisig list --all"
+    assert_success # default global config is used
+
+    rm ~/.multisig/config.toml # to avoid messing up another tests
+}

@@ -19,7 +19,7 @@ func cmdList(cmd *cobra.Command, args []string) error {
 }
 
 func listAll() error {
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}

@@ -39,3 +39,8 @@ func addBroadcastCmdFlags(cmd *cobra.Command) {
 func addDeleteCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to delete")
 }
+
+// addGlobalFlags defines flags to be used regardless of the command used
+func addGlobalFlags(cmd *cobra.Command) {
+	rootCmd.PersistentFlags().StringVarP(&flagConfigPath, "config", "c", "", "custom config path")
+}

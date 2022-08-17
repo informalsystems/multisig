@@ -2,6 +2,9 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
+	"os/user"
+	"path"
 
 	"github.com/BurntSushi/toml"
 
@@ -64,6 +67,18 @@ func (c *Config) GetKey(name string) (Key, bool) {
 
 // load toml config
 func loadConfig(filename string) (*Config, error) {
+	if filename == "" {
+		if _, err := os.Stat(defaultLocalConfigFile); err == nil {
+			filename = defaultLocalConfigFile
+		} else {
+			usr, err := user.Current()
+			if err != nil {
+				return nil, err
+			}
+			filename = path.Join(usr.HomeDir, defaultGlobalConfigFile)
+		}
+	}
+
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
