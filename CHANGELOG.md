@@ -3,6 +3,8 @@
 # v0.2.2 (???, 2022) [WIP]
 
 - AWS S3 address can be modified to support S3-compatible self-hosted solutions.
+- Config file now may be customized via `--config` flag
+- By default, config file `~/.multisig/config` is used
 
 # v0.2.1 (May 10, 2022)
 
