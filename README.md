@@ -64,9 +64,12 @@ for the list of commands and options.
 
 ## Configure
 
-`multisig` uses a simple `config.toml` file expected to be found in the present working directory. 
+`multisig` uses a simple `config.toml` file. 
+Path to config file may be specified via `--config` flag. 
+If config path isn't specified explicitly, it's being searched in the present working directory.
+If config file is not present in the working directory, it's searched at `~/.mulitisig/config.toml`.
 A documented example file is provided in `data/config.toml`. Copy this example
-file to your current directory and modify it as necessary.
+file to your current directory or to `~/.multisig/` and modify it as necessary.
 
 You will need to:
 
