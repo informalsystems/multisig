@@ -1,0 +1,26 @@
+user = "user1"
+
+keyringbackend = "test"
+
+[aws]
+address = "http://127.0.0.1:9000/"
+bucket = "multisig-test-bucket"
+pub = "test_access_key"
+priv = "test_secret_key"
+
+[[keys]]
+name = "test_multisig_2_of_3"
+address = "cosmos1mmq6knly90q9pqfx36srl3gnls3ahdm7s93g2q"
+localname = "multisig_test_2_of_3"
+
+[[keys]]
+name = "test_multisig_3_of_4"
+address = "cosmos19mxmee2hyl23kpa39al2d4ztzzyuh3mletg4vk"
+localname = "multisig_test_3_of_4"
+
+[[chains]]
+name = "cosmos"
+binary = "gaiad"
+prefix = "cosmos"
+id = "testhub"
+node = "http://localhost:26657"

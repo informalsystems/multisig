@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# v0.2.2 (???, 2022) [WIP]
+
+- AWS S3 address can be modified to support S3-compatible self-hosted solutions.
+
 # v0.2.1 (May 10, 2022)
 
 Thi minor release includes some minor bug fixes identified after the previous release
