@@ -13,6 +13,7 @@ keyringbackend = "os"
 
 # aws credentials
 [aws]
+address = "TODO"       # custom address of AWS S3 for self-hosted cases; leave empty or remove to use AWS S3
 bucket = "TODO"        # s3 bucket name
 bucketregion = "TODO"  # aws region
 pub = "TODO"           # Access Key ID

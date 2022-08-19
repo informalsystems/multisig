@@ -306,6 +306,19 @@ There are a set of `raw` subcommands for direct manipulation of bucket objects.
 This is mostly for debugging purposes and generally should not need to be used.
 See `multisig raw --help` and the help menu for each subcommand for more info.
 
+## Running the tests
+
+The tests are made in an integrational manner to test the things on the real chain.
+To bootstrap the tests a local container is launched with an instance of gaia, minio, and multisig tool.
+Ensure you have docker installed and running before launching the tests.
+To run the tests use the following command in project's directory:
+
+```
+./run_tests.sh
+```
+
+The command will pull the necessary images and will build the gaia from scratch so the first run can be time-consuming.
+
 ## TODO
 
 ### High Priority
