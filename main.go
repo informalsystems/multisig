@@ -35,9 +35,10 @@ var (
 
 // Data we need for signers to sign a tx (eg. without access to a node)
 type SignData struct {
-	Account  int    `json:"account"`
-	Sequence int    `json:"sequence"`
-	ChainID  string `json:"chain-id"`
+	Account     int    `json:"account"`
+	Sequence    int    `json:"sequence"`
+	ChainID     string `json:"chain-id"`
+	Description string `json:"description"`
 }
 
 func main() {
@@ -547,9 +548,10 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 
 	// create and marshal the sign data
 	signData := SignData{
-		Account:  accountNum,
-		Sequence: sequenceNum,
-		ChainID:  chain.ID,
+		Account:     accountNum,
+		Sequence:    sequenceNum,
+		ChainID:     chain.ID,
+		Description: flagDescription,
 	}
 	signDataBytes, err := json.Marshal(signData)
 	if err != nil {
