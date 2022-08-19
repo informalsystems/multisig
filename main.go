@@ -31,6 +31,8 @@ var (
 	signDataJSON = "signdata.json"
 
 	defaultBucketRegion = "ca-central-1"
+	defaultFee          = 1000
+	defaultGas          = 300000
 )
 
 // Data we need for signers to sign a tx (eg. without access to a node)
@@ -167,15 +169,11 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: config ?
-	gas := 300000
-	fee := 10000
-
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
 	cmdArgs := []string{"tx", "distribution", "withdraw-all-rewards",
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", fee, denom),
-		"--gas", fmt.Sprintf("%d", gas),
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -272,17 +270,13 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: config ?
-	gas := 300000
-	fee := 10000
-
 	// gaiad tx authz grant
 	cmdArgs := []string{"tx", "authz", "grant", grantee, "generic",
 		"--expiration", fmt.Sprintf("%d", expireTimestamp),
 		"--msg-type", cosmosMsg,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", fee, denom),
-		"--gas", fmt.Sprintf("%d", gas),
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -355,15 +349,11 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: config ?
-	gas := 300000
-	fee := 10000
-
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
 	cmdArgs := []string{"tx", "gov", "vote", propID, voteOption,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", fee, denom),
-		"--gas", fmt.Sprintf("%d", gas),
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
