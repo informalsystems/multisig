@@ -32,13 +32,16 @@ var (
 	signDataJSON = "signdata.json"
 
 	defaultBucketRegion = "ca-central-1"
+	defaultFee          = 1000
+	defaultGas          = 300000
 )
 
 // Data we need for signers to sign a tx (eg. without access to a node)
 type SignData struct {
-	Account  int    `json:"account"`
-	Sequence int    `json:"sequence"`
-	ChainID  string `json:"chain-id"`
+	Account     int    `json:"account"`
+	Sequence    int    `json:"sequence"`
+	ChainID     string `json:"chain-id"`
+	Description string `json:"description"`
 }
 
 func main() {
@@ -167,15 +170,11 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: config ?
-	gas := 300000
-	fee := 10000
-
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
 	cmdArgs := []string{"tx", "distribution", "withdraw-all-rewards",
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", fee, denom),
-		"--gas", fmt.Sprintf("%d", gas),
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -266,26 +265,19 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 		nodeAddress = flagNode
 	}
 
-	// TODO:
-	// keyring backend?
-
 	binary := chain.Binary
 	address, err := bech32ify(key.Address, chain.Prefix)
 	if err != nil {
 		return err
 	}
 
-	// TODO: config ?
-	gas := 300000
-	fee := 10000
-
 	// gaiad tx authz grant
 	cmdArgs := []string{"tx", "authz", "grant", grantee, "generic",
 		"--expiration", fmt.Sprintf("%d", expireTimestamp),
 		"--msg-type", cosmosMsg,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", fee, denom),
-		"--gas", fmt.Sprintf("%d", gas),
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -294,8 +286,6 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	}
 
-	// TODO: do we need these?
-	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
 	execCmd := exec.Command(binary, cmdArgs...)
 	fmt.Println(execCmd)
 	unsignedBytes, err := execCmd.CombinedOutput()
@@ -360,15 +350,11 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: config ?
-	gas := 300000
-	fee := 10000
-
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
 	cmdArgs := []string{"tx", "gov", "vote", propID, voteOption,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", fee, denom),
-		"--gas", fmt.Sprintf("%d", gas),
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -548,9 +534,10 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 
 	// create and marshal the sign data
 	signData := SignData{
-		Account:  accountNum,
-		Sequence: sequenceNum,
-		ChainID:  chain.ID,
+		Account:     accountNum,
+		Sequence:    sequenceNum,
+		ChainID:     chain.ID,
+		Description: flagDescription,
 	}
 	signDataBytes, err := json.Marshal(signData)
 	if err != nil {
@@ -931,47 +918,70 @@ func parseTxResult(txResultBytes []byte) (int, string, error) {
 	return code, txhash, nil
 }
 
-// TODO can we get this more programmatically ?
-// Need to parse out the account and sequence number
+// Parse out the account and sequence number
 // Return: accountNumber, sequenceNumber, error
 func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
-	spl := strings.Split(string(queryResponseBytes), "\n")
 	var (
-		acc string
-		seq string
+		accInt   int = 0
+		seqInt   int = 0
+		acctType AccountType
 	)
-	for _, s := range spl {
-		if strings.Contains(s, "account_number:") {
-			c := strings.TrimPrefix(s, `account_number:`)
-			c = strings.TrimSpace(c)
-			c = strings.TrimPrefix(c, `"`)
-			c = strings.TrimSuffix(c, `"`)
-			acc = c
-		} else if strings.Contains(s, "sequence:") {
-			c := strings.TrimPrefix(s, `sequence:`)
-			c = strings.TrimSpace(c)
-			c = strings.TrimPrefix(c, `"`)
-			c = strings.TrimSuffix(c, `"`)
-			seq = c
+
+	json.Unmarshal(queryResponseBytes, &acctType)
+
+	if acctType.Type == "/cosmos.auth.v1beta1.BaseAccount" {
+		var ba BaseAccount
+		err := json.Unmarshal(queryResponseBytes, &ba)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error un-marshalling base account")
 		}
+		accInt, err := strconv.Atoi(ba.AccountNumber)
+		if err != nil {
+			return 0, 0, fmt.Errorf("account number is not an integer")
+		}
+		seqInt, err := strconv.Atoi(ba.Sequence)
+		if err != nil {
+			return 0, 0, fmt.Errorf("sequence number is not an integer")
+		}
+		return accInt, seqInt, nil
+	} else if acctType.Type == "/cosmos.vesting.v1beta1.PeriodicVestingAccount" {
+		var pva PeriodicVestingAccount
+		err := json.Unmarshal(queryResponseBytes, &pva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error un-marshalling periodic vesting account")
+		}
+		accInt, err := strconv.Atoi(pva.BaseVestingAccount.BaseAccount.AccountNumber)
+		if err != nil {
+			return 0, 0, fmt.Errorf("account number is not an integer")
+		}
+		seqInt, err := strconv.Atoi(pva.BaseVestingAccount.BaseAccount.Sequence)
+		if err != nil {
+			return 0, 0, fmt.Errorf("sequence number is not an integer")
+		}
+		return accInt, seqInt, nil
+	} else if acctType.Type == "/cosmos.vesting.v1beta1.ContinuousVestingAccount" {
+		var cva ContinuousVestingAccount
+		err := json.Unmarshal(queryResponseBytes, &cva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error un-marshalling continuous vesting account")
+		}
+		accInt, err := strconv.Atoi(cva.BaseVestingAccount.BaseAccount.AccountNumber)
+		if err != nil {
+			return 0, 0, fmt.Errorf("account number is not an integer")
+		}
+		seqInt, err := strconv.Atoi(cva.BaseVestingAccount.BaseAccount.Sequence)
+		if err != nil {
+			return 0, 0, fmt.Errorf("sequence number is not an integer")
+		}
+		return accInt, seqInt, nil
+	} else {
+		return accInt, seqInt, fmt.Errorf("cannot parse account type")
 	}
-
-	accInt, err := strconv.Atoi(acc)
-	if err != nil {
-		return 0, 0, fmt.Errorf("account number in query response is not an integer")
-	}
-
-	seqInt, err := strconv.Atoi(seq)
-	if err != nil {
-		return 0, 0, fmt.Errorf("sequence in query response is not an integer")
-	}
-
-	return accInt, seqInt, nil
 }
 
 // Return: accountNumber, sequenceNumber, error
 func getAccSeq(binary, addr, node string) (int, int, error) {
-	cmdArgs := []string{"query", "--node", node, "account", addr}
+	cmdArgs := []string{"query", "--node", node, "account", addr, "--output", "json"}
 	cmd := exec.Command(binary, cmdArgs...)
 	b, err := cmd.CombinedOutput()
 	if err != nil {
