@@ -302,6 +302,96 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 	return pushTx(chainName, keyName, unsignedBytes, cmd)
 }
 
+func cmdRevokeAuthz(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
+	grantee := args[2]
+
+	msgType := args[3]
+	// Parse message-type parameter and generate proper tx msg-type
+	// Only support the messages we need for now (withdraw, delegate, commission, vote)
+	var cosmosMsg string
+	switch msgType {
+	case "withdraw":
+		cosmosMsg = "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward"
+	case "delegate":
+		cosmosMsg = "/cosmos.staking.v1beta1.MsgDelegate"
+	case "commission":
+		cosmosMsg = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
+	case "vote":
+		cosmosMsg = "/cosmos.gov.v1beta1.MsgVote"
+	default:
+		return fmt.Errorf("message type %s not supported", msgType)
+	}
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		return err
+	}
+
+	chain, found := conf.GetChain(chainName)
+	if !found {
+		return fmt.Errorf("chain %s not found in config", chainName)
+	}
+	key, found := conf.GetKey(keyName)
+	if !found {
+		return fmt.Errorf("key %s not found in config", keyName)
+	}
+
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
+	}
+
+	nodeAddress := chain.Node
+	if flagNode != "" {
+		nodeAddress = flagNode
+	}
+
+	binary := chain.Binary
+	address, err := bech32ify(key.Address, chain.Prefix)
+	if err != nil {
+		return err
+	}
+
+	// gaiad tx authz grant
+	cmdArgs := []string{"tx", "authz", "revoke", grantee, cosmosMsg,
+		"--from", address,
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--generate-only",
+		"--chain-id", fmt.Sprintf("%s", chain.ID),
+	}
+
+	if nodeAddress != "" {
+		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+
+	execCmd := exec.Command(binary, cmdArgs...)
+	fmt.Println(execCmd)
+	unsignedBytes, err := execCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(execCmd)
+		fmt.Println(string(unsignedBytes))
+		return err
+	}
+	fmt.Println(string(unsignedBytes))
+
+	return pushTx(chainName, keyName, unsignedBytes, cmd)
+}
+
 func cmdVote(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]

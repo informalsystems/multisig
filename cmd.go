@@ -67,6 +67,25 @@ var authzGrantCmd = &cobra.Command{
 	RunE:          cmdGrantAuthz,
 }
 
+var authzRevokeCmd = &cobra.Command{
+	Use:   "revoke <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote>",
+	Short: "generate an authz revoke tx and push it",
+	Long: "\nThis commands allows you to generate an unsigned tx to revoke an existing authorization " +
+		"to a 'grantee' address for a particular '<message-type>' (e.g. withdraw)\n " +
+		"multisig tx revoke cosmoshub my-key cosmos1adggsadfsadfffredffdssdf withdraw",
+	Args: func(cmd *cobra.Command, args []string) error {
+		numArgs := 4 // Update the number of arguments if command use changes
+		if len(args) != numArgs {
+			cmd.Help()
+			return fmt.Errorf("\n accepts %d arg(s), received %d", numArgs, len(args))
+		}
+		return nil
+	},
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          cmdRevokeAuthz,
+}
+
 var voteCmd = &cobra.Command{
 	Use:   "vote <chain name> <key name> <proposal number> <vote option (yes/no/veto/abstain)>",
 	Short: "generate a vote tx and push it",
@@ -198,6 +217,7 @@ func init() {
 
 	// Authz subcommands
 	authzCmd.AddCommand(authzGrantCmd)
+	authzCmd.AddCommand(authzRevokeCmd)
 
 	// Add flags to commands
 	addTxCmdCommonFlags(pushCmd)
@@ -210,6 +230,9 @@ func init() {
 
 	addTxCmdCommonFlags(authzGrantCmd)
 	addDenomFlags(authzGrantCmd)
+
+	addTxCmdCommonFlags(authzRevokeCmd)
+	addDenomFlags(authzRevokeCmd)
 
 	addSignCmdFlags(signCmd)
 
