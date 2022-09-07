@@ -170,6 +170,7 @@ var (
 	flagDescription string
 	flagDenom       string
 	flagTxIndex     int
+	flagConfigPath  string
 )
 
 func init() {
@@ -217,4 +218,6 @@ func init() {
 	addBroadcastCmdFlags(broadcastCmd)
 
 	addDeleteCmdFlags(deleteCmd)
+
+	addGlobalFlags(rootCmd)
 }

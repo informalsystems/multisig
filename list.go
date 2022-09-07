@@ -19,7 +19,7 @@ func cmdList(cmd *cobra.Command, args []string) error {
 }
 
 func listAll() error {
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func listDir(args []string) error {
 	chainName := args[0]
 	keyName := args[1]
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}

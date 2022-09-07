@@ -42,14 +42,16 @@ get_balance(){
         --chain-id=testhub \
         --generate-only > unsignedTx.json
 
-    cd "$HOME/multisig/tests/user1"
-    multisig tx push "$HOME/unsignedTx.json" cosmos test_multisig_2_of_3
-    multisig sign cosmos test_multisig_2_of_3 --from test_key_1
+    multisig tx push unsignedTx.json cosmos test_multisig_2_of_3 \
+        --config "$HOME/multisig/tests/user1_config.toml"
+    multisig sign cosmos test_multisig_2_of_3 --from test_key_1 \
+        --config "$HOME/multisig/tests/user1_config.toml"
 
-    cd "$HOME/multisig/tests/user2"
-    multisig sign cosmos test_multisig_2_of_3 --from test_key_2
+    multisig sign cosmos test_multisig_2_of_3 --from test_key_2 \
+        --config "$HOME/multisig/tests/user2_config.toml"
 
-    multisig broadcast cosmos test_multisig_2_of_3
+    multisig broadcast cosmos test_multisig_2_of_3\
+        --config "$HOME/multisig/tests/user2_config.toml"
 
     wait_till_next_block
 
@@ -68,13 +70,14 @@ get_balance(){
         --chain-id=testhub \
         --generate-only > unsignedTx.json
 
-    cd "$HOME/multisig/tests/user1"
-    multisig tx push "$HOME/unsignedTx.json" cosmos test_multisig_2_of_3
-    multisig sign cosmos test_multisig_2_of_3 --from test_key_1
+    multisig tx push unsignedTx.json cosmos test_multisig_2_of_3 \
+        --config "$HOME/multisig/tests/user1_config.toml"
+    multisig sign cosmos test_multisig_2_of_3 --from test_key_1 \
+        --config "$HOME/multisig/tests/user1_config.toml"
 
     # multisig should fail and return "Insufficient signatures for broadcast"
     # using "run bash -c" because we expect the command to fail but don't want script to exit
-    run bash -c "multisig broadcast cosmos test_multisig_2_of_3"
+    run bash -c "multisig broadcast cosmos test_multisig_2_of_3 --config $HOME/multisig/tests/user1_config.toml"
     assert_failure
 }
 
@@ -88,15 +91,38 @@ get_balance(){
         --chain-id=testhub \
         --generate-only > unsignedTx.json
 
-    cd "$HOME/multisig/tests/user1"
-    multisig tx push "$HOME/unsignedTx.json" cosmos test_multisig_3_of_4
-    multisig sign cosmos test_multisig_3_of_4 --from test_key_1
+    multisig tx push "$HOME/unsignedTx.json" cosmos test_multisig_3_of_4 \
+        --config "$HOME/multisig/tests/user1_config.toml"
+    multisig sign cosmos test_multisig_3_of_4 --from test_key_1 \
+        --config "$HOME/multisig/tests/user1_config.toml"
 
-    cd "$HOME/multisig/tests/user2"
-    multisig sign cosmos test_multisig_3_of_4 --from test_key_2
+    multisig sign cosmos test_multisig_3_of_4 --from test_key_2 \
+        --config "$HOME/multisig/tests/user2_config.toml"
 
     # multisig should fail and return "Insufficient signatures for broadcast"
     # using "run bash -c" because we expect the command to fail but don't want script to exit
-    run bash -c "multisig broadcast cosmos test_multisig_3_of_4"
+    run bash -c "multisig broadcast cosmos test_multisig_3_of_4 --config $HOME/multisig/tests/user1_config.toml"
     assert_failure
+}
+
+@test "Config file choise" {
+    mkdir "$HOME/multisig/tests/config_tests"
+    cd    "$HOME/multisig/tests/config_tests"
+
+    run bash -c "multisig list --all"
+    assert_failure # no config provided
+
+    run bash -c "multisig list --all --config $HOME/multisig/tests/user2_config.toml"
+    assert_success # config specified explicitly
+
+    cp "$HOME/multisig/tests/user2_config.toml" config.toml
+    run bash -c "multisig list --all"
+    assert_success # default local config is used
+
+    mkdir ~/.multisig
+    mv config.toml ~/.multisig/
+    run bash -c "multisig list --all"
+    assert_success # default global config is used
+
+    rm ~/.multisig/config.toml # to avoid messing up another tests
 }
