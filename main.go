@@ -1064,6 +1064,21 @@ func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 			return 0, 0, fmt.Errorf("sequence number is not an integer")
 		}
 		return accInt, seqInt, nil
+	} else if acctType.Type == "/ethermint.types.v1.EthAccount" {
+		var eth EthAccount
+		err := json.Unmarshal(queryResponseBytes, &eth)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error un-marshalling ethermint account")
+		}
+		accInt, err := strconv.Atoi(eth.BaseAccount.AccountNumber)
+		if err != nil {
+			return 0, 0, fmt.Errorf("account number is not an integer")
+		}
+		seqInt, err := strconv.Atoi(eth.BaseAccount.Sequence)
+		if err != nil {
+			return 0, 0, fmt.Errorf("sequence number is not an integer")
+		}
+		return accInt, seqInt, nil
 	} else {
 		return accInt, seqInt, fmt.Errorf("cannot parse account type")
 	}
