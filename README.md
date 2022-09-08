@@ -31,14 +31,16 @@ Quick summary, with much more below:
   trusted
 - `multisig tx push` takes an unsigned tx file and pushes it to the s3 directory along with data needed for signing (eg. account number, sequence number, chain id)
 - `multisig tx vote` generate a vote tx and push it to s3 directory
-- `multisig tx authz` generate an authz grant tx (delegate, withdraw, commission, vote)
+- `multisig tx authz` generate an authz grant tx (delegate, withdraw, commission, vote) or revoke an authz authorization
 - `multisig sign` fetches the unsigned tx and signing data for a given chain and key, signs it using the correct binary (eg. `gaiad tx sign unsigned.json ...`), and pushes the signature back to the directory
 - `multisig list` lists the files in a directory so you can see who has signed
 - `multisig broadcast` fetches all the data from a directory, compiles the signed tx (eg. `gaiad tx multisign unsigned.json ...`), broadcasts it using the configured node, and deletes all the files from the directory so signing can start fresh for a new tx
+- `multisig delete` deletes txs from the S3 directory
 
 Everything generally tries to clean up after itself, but files are created and
 removed from the present working directory, so you may want to be somewhere
-clean. You can also use the `multisig raw` commands to cleanup the s3 bucket.
+clean. You can also use the `multisig raw` commands to clean-up the s3 bucket individual files 
+or the `multisig delete` to clean-up multiple files at once.
 
 Note that s3 doesn't actually have directories, everything is just a file in the
 bucket, but files can be prefixed with what looks like directory paths. So the
@@ -66,8 +68,8 @@ for the list of commands and options.
 
 `multisig` uses a simple `config.toml` file. 
 Path to config file may be specified via `--config` flag. 
-If config path isn't specified explicitly, it's being searched in the present working directory.
-If config file is not present in the working directory, it's searched at `~/.mulitisig/config.toml`.
+If the config path isn't specified explicitly, multisig will look for it in the current working directory.
+If config file is not present in the current working directory, multisig will look for it in `~/.mulitisig/config.toml`.
 A documented example file is provided in `data/config.toml`. Copy this example
 file to your current directory or to `~/.multisig/` and modify it as necessary.
 
@@ -88,6 +90,7 @@ with the bucket name, AWS region of the bucket, Access Key ID, and Secret Access
 
 ```
 # aws credentials
+
 [aws]
 bucket = "<bucketName>"         # s3 bucket name
 bucketregion = "<bucketRegion>" # aws bucket region
@@ -144,6 +147,19 @@ address = "cosmos1..."          # bech32 address of the key - same for everyone
 localname = "mycorp-multisig"   # name of this key in a signer's local keystore - can be different for everyone
 ```
 
+### Configure gas and fee
+
+If you specify default values for `gas` and `fee` in the configuration file those will be used instead of the hard-coded 
+values coded in the tool.
+
+For example, to set a default fee of `10000` and default gas of `300000` add this to the config file:
+```
+defaultFee = 10000
+defaultGas = 300000
+```
+
+> Note: In the near future, multisig will support flags that you will be able to use to specify gas and fees.
+
 ### Configure your Chains
 
 You can specify multiple chains. Each chain gets its own `[[chains]]` table.
@@ -153,6 +169,7 @@ It should include:
 - the `binary` used to generate, sign, and broadcast txs
 - the bech32 `prefix` for addresses
 - the chain `id` for signing
+- the `denom` for a particular chain (e.g. `uatom`)
 - an optional `node` to interact with (for commands that can use/require nodes)
 
 ```
@@ -169,11 +186,15 @@ node = "http://localhost:26657" # a synced node - only needed for `tx` and `broa
 
 Commands:
 
-- Tx - `multisig tx`
-- List - `multisig list`
-- Sign - `multisig sign`
-- Broadcast - `multisig broadcast`
-- Raw - `multisig raw`
+| Command                                                            | Command Line         |
+|--------------------------------------------------------------------|----------------------|
+| Broadcast a transaction to the blockchain                          | `multisig broadcast` |
+| Delete transaction files from S3                                   | `multisig delete`    |
+| Help information                                                   | `multisig help`      |
+| List transaction files on S3                                       | `multisig list`      |
+| Raw operations commands on S3 and utilities (e.g. convert address) | `multisig raw`       |
+| Sign a transaction locally and upload the signature to S3          | `multisig sign`      |
+| Create transaction files and upload to S3                          | `multisig tx`        |
 
 ## Tx
 
@@ -246,6 +267,14 @@ this grant, for example to grant permissions for 30 days please specify '30' as 
 You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
 chain registry.
 
+### tx authz revoke
+
+```
+multisig tx authz revoke <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote> [flags]
+```
+
+This will generate a tx to revoke a previously granted authz permission
+
 ## List
 
 To see the files in the directory of a chain and key:
@@ -278,6 +307,14 @@ osmosis/mycorp-main/0/unsigned.json
 
 This shows all the chain/key pairs that have been setup. All of them are empty
 except `osmosis/mycorp-main` which has one signature (`eb.json`).
+
+## Delete
+
+To delete multiple files from S3 for a particular chain/key pair:
+
+```
+ multisig delete <chain name> <key name> [flags]
+```
 
 ## Sign
 
@@ -326,16 +363,13 @@ The command will pull the necessary images and will build the gaia from scratch 
 
 ### High Priority
 
-- make config globally accessible eg. in `~/.multisig/config.toml`
 - add denoms to chains and have `tx push` validate txs are using correct denoms
 - tx push should check fees and gas are high enough
 - add multisig threshold to the config and ensure there is enough signatures
   before broadcasting
-- convenience commands to generate voting and reward withdrawal txs 
-- `tx push` should include a description that can be displayed in the `list` so signers know what each tx is doing
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
-- need a way to assign local key names (`--from`) to keys (possibly on a per-chain basis, eek)
+- need a way to assign local key names (`--from`) to keys (possibly on a per-chain basis)
 - use `--broadcast-mode block` ?
 - new command to show unclaimed rewards for all addresses on all networks
 
@@ -345,18 +379,15 @@ The command will pull the necessary images and will build the gaia from scratch 
 - add a command for porting a multisig from one binary's keystore to another
   (ie. decoding the bech32 for each key and running `keys add` on the new
   binary)
-- test suite that spins up some local nodes and multisigs for testing
 - proper error handling - sometimes we just print a message and return no error,
   but then the exit code is still 0
 - make tx and query response parsing more robust (currently shelling out to CLI
   commands - should we be using the REST server ? maybe 26657 nodes are more
   available than rest ? )
 
-
 ### Lower Priority
 
 - Use the https://github.com/cosmos/chain-registry for configuring chains instead of the
   config.toml ?
-- other backends besides s3 ?
 - other features to better manage multisigs and keystores across binaries ?!
 
