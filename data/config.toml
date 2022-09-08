@@ -4,12 +4,15 @@
 # General configuration
 ########################
 
-
 # username, eg. initials - for naming your signatures
 user = "eb" 
 
 # gaiad uses "os" by default, but I use "test"
-keyringbackend = "os" 
+keyringbackend = "os"
+
+# default gas and fee
+defaultFee = 10000
+defaultGas = 300000
 
 # aws credentials
 [aws]
