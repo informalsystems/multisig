@@ -324,7 +324,7 @@ func cmdRevokeAuthz(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("message type %s not supported", msgType)
 	}
 
-	conf, err := loadConfig(configFile)
+	conf, err := loadConfig(flagConfigPath)
 	if err != nil {
 		return err
 	}
