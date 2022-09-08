@@ -1,7 +1,7 @@
 # CHANGELOG
 
 ## v0.3.0
-*September 9th, 2022*
+*September 8th, 2022*
 ### Highlights
 
 This major release has a few improvements such as new commands, a new config file handling, ability to use an S3 provider other than AWS (e.g. [minio](https://min.io/)), an end-to-end basic test suite that leverages containers and several important bug fixes that were identified during regular use of the tool.
