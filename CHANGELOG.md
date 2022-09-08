@@ -1,12 +1,34 @@
 # CHANGELOG
 
-# v0.2.2 (???, 2022) [WIP]
+## v0.3.0
+*September 9th, 2022*
+### Highlights
 
-- AWS S3 address can be modified to support S3-compatible self-hosted solutions.
-- Config file now may be customized via `--config` flag
-- By default, config file `~/.multisig/config` is used
+This major release has a few improvements such as new commands, a new config file handling, ability to use an S3 provider other than AWS (e.g. [minio](https://min.io/)), an end-to-end basic test suite that leverages containers and several important bug fixes that were identified during regular use of the tool.
+
+#### FEATURES
+
+- New configuration file handling ([#51](https://github.com/informalsystems/multisig/pull/51))
+  - By default, the config file `$HOME/.multisig/config.toml` is used
+  - Config file now may be customized via `--config` flag
+  - If the file is not specified with the `--config` flag or the file is in the `$HOME/.multisig` folder, then it will look for it in the current folder 
+- AWS S3 address can be modified to support S3-compatible self-hosted solutions ([#41](https://github.com/informalsystems/multisig/pull/41))
+- Basic end-to-end test suite ([#40](https://github.com/informalsystems/multisig/issues/40))
+- New `multisig delete` command that allows the deletion of files in the S3 bucket for a specific chain and key name ([#29](https://github.com/informalsystems/multisig/issues/29))
+- Added a new `--description` flag to `multisig tx` commands to allow additional metadata to be added to the `signdata.json` file, e.g a short description about the tx ([#37](https://github.com/informalsystems/multisig/issues/37))
+- Implemented logic to use the default values for gas and fees from the configuration file. This replaces the old way where these values were only hard-coded. If values are not specified in the config the hard-coded values will still be used ([#44](https://github.com/informalsystems/multisig/issues/44))
+- New `tx authz revoke` command that allows `multisig` to submit a tx to revoke an authz permission previously granted for a particular message type (e.g. vote) ([#18](https://github.com/informalsystems/multisig/issues/18))
+
+#### BUG FIXES
+
+-  Fixed issue that prevented a tx withdraw to be pushed to S3 ([#34](https://github.com/informalsystems/multisig/issues/34))
+- Handle different account types that were returned when querying an account to find the account number and the sequence number. This bug prevented signing txs in Regen and Evmos for examples
+  - Support for different account types such as `BaseAccount` and `PeriodicVestingAccount` ([#21](https://github.com/informalsystems/multisig/issues/21))
+  - Support for the `/ethermint.types.v1.EthAccount` account type (`Evmos` use it) ([#54](https://github.com/informalsystems/multisig/issues/54))
+  - Support for the `/cosmos.vesting.v1beta1.ContinuousVestingAccount` account type ([#47](https://github.com/informalsystems/multisig/issues/47))
 
 # v0.2.1 (May 10, 2022)
+
 
 Thi minor release includes some minor bug fixes identified after the previous release
 
