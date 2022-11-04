@@ -1064,7 +1064,7 @@ func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 			return 0, 0, fmt.Errorf("sequence number is not an integer")
 		}
 		return accInt, seqInt, nil
-	} else if acctType.Type == "/ethermint.types.v1.EthAccount" {
+	} else if strings.Contains(acctType.Type, "EthAccount") {
 		var eth EthAccount
 		err := json.Unmarshal(queryResponseBytes, &eth)
 		if err != nil {
