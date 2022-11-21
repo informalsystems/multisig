@@ -170,7 +170,7 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
+	// [binary] tx distribution withdraw-all-rewards
 	cmdArgs := []string{"tx", "distribution", "withdraw-all-rewards",
 		"--from", address,
 		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
@@ -185,6 +185,86 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 
 	// TODO: do we need these?
 	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
+	execCmd := exec.Command(binary, cmdArgs...)
+	fmt.Println(execCmd)
+	unsignedBytes, err := execCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(execCmd)
+		fmt.Println(string(unsignedBytes))
+		return err
+	}
+	fmt.Println(string(unsignedBytes))
+
+	return pushTx(chainName, keyName, unsignedBytes, cmd)
+}
+
+func cmdClaimValidator(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
+	valAddress := args[2]
+
+	conf, err := loadConfig(flagConfigPath)
+	if err != nil {
+		return err
+	}
+
+	chain, found := conf.GetChain(chainName)
+	if !found {
+		return fmt.Errorf("chain %s not found in config", chainName)
+	}
+	key, found := conf.GetKey(keyName)
+	if !found {
+		return fmt.Errorf("key %s not found in config", keyName)
+	}
+
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
+	}
+
+	nodeAddress := chain.Node
+	if flagNode != "" {
+		nodeAddress = flagNode
+	}
+
+	binary := chain.Binary
+	address, err := bech32ify(key.Address, chain.Prefix)
+	if err != nil {
+		return err
+	}
+
+	// [binary] tx distribution withdraw-rewards [validator-addr]
+	cmdArgs := []string{"tx", "distribution", "withdraw-rewards",
+		valAddress,
+		"--commission",
+		"--from", address,
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--generate-only",
+		"--chain-id", fmt.Sprintf("%s", chain.ID),
+	}
+
+	if nodeAddress != "" {
+		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+
+	// Append keyring if specified in the config
+	if conf.KeyringBackend != "" {
+		cmdArgs = append(cmdArgs, "--keyring-backend", conf.KeyringBackend)
+	}
+
 	execCmd := exec.Command(binary, cmdArgs...)
 	fmt.Println(execCmd)
 	unsignedBytes, err := execCmd.CombinedOutput()

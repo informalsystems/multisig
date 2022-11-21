@@ -255,6 +255,16 @@ This will generate a tx for withdraw all rewards for the account, and it will pu
 You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
 chain registry.
 
+### tx claim-validator
+
+```
+multisig tx claim-validator <chain name> <key name> <validator_address>
+```
+
+This will generate a tx to claim the rewards and commission from a validator account, and it will push it to s3 directly.
+You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
+chain registry.
+
 ### tx authz grant
 
 ```
@@ -289,7 +299,7 @@ To list all the files in the bucket:
 multisig list --all
 ```
 
-Example output:
+Example output:k
 
 ```
 $ multisig list --all
@@ -365,8 +375,6 @@ The command will pull the necessary images and will build the gaia from scratch 
 
 - add denoms to chains and have `tx push` validate txs are using correct denoms
 - tx push should check fees and gas are high enough
-- add multisig threshold to the config and ensure there is enough signatures
-  before broadcasting
 - `broadcast` should log the tx once its complete (maybe a log file
   in each top level chain directory?) - should include the key, tx id, and the description 
 - need a way to assign local key names (`--from`) to keys (possibly on a per-chain basis)
