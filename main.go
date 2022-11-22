@@ -1,8 +1,13 @@
 package main
 
 import (
+	"cosmossdk.io/math"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,12 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/spf13/cobra"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 // global vars
@@ -124,6 +123,7 @@ func cmdDelete(cobraCmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// Generates a [binary] `tx distribution withdraw-all-rewards` transaction
 func cmdWithdraw(cmd *cobra.Command, args []string) error {
 	chainName := args[0]
 	keyName := args[1]
@@ -172,6 +172,99 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 
 	// [binary] tx distribution withdraw-all-rewards
 	cmdArgs := []string{"tx", "distribution", "withdraw-all-rewards",
+		"--from", address,
+		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
+		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--generate-only",
+		"--chain-id", fmt.Sprintf("%s", chain.ID),
+	}
+
+	if nodeAddress != "" {
+		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+
+	// TODO: do we need these?
+	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
+	execCmd := exec.Command(binary, cmdArgs...)
+	fmt.Println(execCmd)
+	unsignedBytes, err := execCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(execCmd)
+		fmt.Println(string(unsignedBytes))
+		return err
+	}
+	fmt.Println(string(unsignedBytes))
+
+	return pushTx(chainName, keyName, unsignedBytes, cmd)
+}
+
+// Generates a [binary] `tx staking delegate` transaction
+func cmdDelegate(cmd *cobra.Command, args []string) error {
+	chainName := args[0]
+	keyName := args[1]
+	validator := args[2]
+	amount := args[3]
+
+	conf, err := loadConfig(flagConfigPath)
+	if err != nil {
+		return err
+	}
+
+	chain, found := conf.GetChain(chainName)
+	if !found {
+		return fmt.Errorf("chain %s not found in config", chainName)
+	}
+	key, found := conf.GetKey(keyName)
+	if !found {
+		return fmt.Errorf("key %s not found in config", keyName)
+	}
+
+	// Use denom from flag if specified, if not, then try
+	// to retrieve it from the config, if not in the config
+	// try to retrieve from the chain registry.
+	var denom string
+	isDenomSet := cmd.Flags().Changed("denom")
+	if isDenomSet {
+		denom = flagDenom
+	} else {
+		denom, err = getDenom(conf, chainName)
+		if err != nil {
+			return fmt.Errorf("denom not found in config or chain registry: %s", err)
+		}
+	}
+
+	nodeAddress := chain.Node
+	if flagNode != "" {
+		nodeAddress = flagNode
+	}
+
+	binary := chain.Binary
+	address, err := bech32ify(key.Address, chain.Prefix)
+	if err != nil {
+		return err
+	}
+
+	// Safe check for amount
+	amountWithoutDenom := strings.Replace(amount, denom, "", -1)
+	amountConverted := math.NewUintFromString(amountWithoutDenom)
+
+	// Check if amount + fee < available balance
+	balance, err := getAccountBalance(address, denom, chain)
+	if err != nil {
+		fmt.Println("error getting account balance, skipping check to validate enough balance to delegate")
+	} else {
+		amountFee := amountConverted.Add(math.NewUint(uint64(conf.DefaultFee)))
+		if balance.LT(amountFee) {
+			return fmt.Errorf("the balance available (%s) is less than the amount (%s) plus the fee (%d), transaction will fail", balance, amountWithoutDenom, conf.DefaultFee)
+		}
+	}
+
+	cmdArgs := []string{"tx", "staking", "delegate",
+		validator,
+		amount,
 		"--from", address,
 		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
 		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
@@ -1181,4 +1274,40 @@ func getAccSeq(binary, addr, node string) (int, int, error) {
 	fmt.Println(string(b))
 
 	return parseAccountQuery(b)
+}
+
+// Get account balance for a particular denom
+func getAccountBalance(address string, denom string, chain Chain) (math.Uint, error) {
+
+	// [binary] query account balances <account> --output json
+	cmdArgs := []string{"query", "bank", "balances",
+		"--output", "json",
+		"--node", chain.Node,
+		address,
+	}
+
+	execCmd := exec.Command(chain.Binary, cmdArgs...)
+	fmt.Println(execCmd)
+	unsignedBytes, err := execCmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println("call failed")
+		fmt.Println("-----------------------------------------------------------------")
+		fmt.Println(execCmd)
+		fmt.Println(string(unsignedBytes))
+		return math.ZeroUint(), err
+	}
+
+	var ab AccountBalance
+	err = json.Unmarshal(unsignedBytes, &ab)
+	if err != nil {
+		return math.ZeroUint(), fmt.Errorf("cannot parse balance")
+	}
+	for _, balance := range ab.Balances {
+		if strings.ToLower(balance.Denom) == strings.ToLower(denom) {
+			fmt.Printf("Balance: %s\n", string(balance.Amount))
+			return math.NewUintFromString(balance.Amount), nil
+		}
+	}
+	return math.ZeroUint(), fmt.Errorf("cannot find balance for %s denom", denom)
 }

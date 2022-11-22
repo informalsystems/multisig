@@ -109,3 +109,14 @@ type BaseAccount struct {
 type AccountType struct {
 	Type string `json:"@type"`
 }
+
+type AccountBalance struct {
+	Balances []struct {
+		Denom  string `json:"denom"`
+		Amount string `json:"amount"`
+	} `json:"balances"`
+	Pagination struct {
+		NextKey interface{} `json:"next_key"`
+		Total   string      `json:"total"`
+	} `json:"pagination"`
+}

@@ -100,6 +100,13 @@ var withdrawCmd = &cobra.Command{
 	RunE:  cmdWithdraw,
 }
 
+var delegateCmd = &cobra.Command{
+	Use:   "delegate <chain name> <key name> <validator_address> <amount>",
+	Short: "generate a delegate tx and push it",
+	Args:  cobra.ExactArgs(4),
+	RunE:  cmdDelegate,
+}
+
 var claimValidatorCmd = &cobra.Command{
 	Use:   "claim-validator <chain name> <key name> <validator_address>",
 	Short: "generate a withdraw-rewards tx to claim validators rewards and commission and push it",
@@ -222,6 +229,7 @@ func init() {
 	txCmd.AddCommand(withdrawCmd)
 	txCmd.AddCommand(authzCmd)
 	txCmd.AddCommand(claimValidatorCmd)
+	txCmd.AddCommand(delegateCmd)
 
 	// Authz subcommands
 	authzCmd.AddCommand(authzGrantCmd)
@@ -238,6 +246,9 @@ func init() {
 
 	addTxCmdCommonFlags(claimValidatorCmd)
 	addDenomFlags(claimValidatorCmd)
+
+	addTxCmdCommonFlags(delegateCmd)
+	addDenomFlags(delegateCmd)
 
 	addTxCmdCommonFlags(authzGrantCmd)
 	addDenomFlags(authzGrantCmd)

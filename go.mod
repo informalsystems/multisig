@@ -3,6 +3,7 @@ module github.com/informalsystems/multisig
 go 1.16
 
 require (
+	cosmossdk.io/math v1.0.0-beta.3
 	github.com/BurntSushi/toml v0.3.1
 	github.com/aws/aws-sdk-go v1.42.13
 	github.com/cosmos/cosmos-sdk v0.42.10
