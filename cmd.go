@@ -204,6 +204,8 @@ var (
 	flagDenom       string
 	flagTxIndex     int
 	flagConfigPath  string
+	flagGas         int
+	flagFees        string
 )
 
 func init() {

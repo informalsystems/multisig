@@ -29,10 +29,6 @@ var (
 	unsignedJSON = "unsigned.json"
 	signedJSON   = "signed.json"
 	signDataJSON = "signdata.json"
-
-	defaultBucketRegion = "ca-central-1"
-	defaultFee          = 1000
-	defaultGas          = 300000
 )
 
 // Data we need for signers to sign a tx (eg. without access to a node)
@@ -142,27 +138,10 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	// Use denom from flag if specified, if not, then try
-	// to retrieve it from the config, if not in the config
-	// try to retrieve from the chain registry.
-	var denom string
-	isDenomSet := cmd.Flags().Changed("denom")
-	if isDenomSet {
-		denom = flagDenom
-	} else {
-		denom, err = getDenom(conf, chainName)
-		if err != nil {
-			return fmt.Errorf("denom not found in config or chain registry: %s", err)
-		}
-	}
-
 	nodeAddress := chain.Node
 	if flagNode != "" {
 		nodeAddress = flagNode
 	}
-
-	// TODO:
-	// keyring backend?
 
 	binary := chain.Binary
 	address, err := bech32ify(key.Address, chain.Prefix)
@@ -170,11 +149,17 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Get fees
+	fees, err := getFees(cmd)
+	if err != nil {
+		return err
+	}
+
 	// [binary] tx distribution withdraw-all-rewards
 	cmdArgs := []string{"tx", "distribution", "withdraw-all-rewards",
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
-		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--fees", fees,
+		"--gas", fmt.Sprintf("%d", getGas(conf)),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -251,14 +236,25 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 	amountWithoutDenom := strings.Replace(amount, denom, "", -1)
 	amountConverted := math.NewUintFromString(amountWithoutDenom)
 
+	// Get fees
+	fees, err := getFees(cmd)
+	if err != nil {
+		return err
+	}
+
 	// Check if amount + fee < available balance
 	balance, err := getAccountBalance(address, denom, chain)
 	if err != nil {
 		fmt.Println("error getting account balance, skipping check to validate enough balance to delegate")
 	} else {
-		amountFee := amountConverted.Add(math.NewUint(uint64(conf.DefaultFee)))
-		if balance.LT(amountFee) {
-			return fmt.Errorf("the balance available (%s) is less than the amount (%s) plus the fee (%d), transaction will fail", balance, amountWithoutDenom, conf.DefaultFee)
+		feeNoDenom, err := strconv.Atoi(strings.Replace(fees, denom, "", -1))
+		if err != nil {
+			fmt.Println("error finding the fee amount, skipping check to validate enough balance to delegate")
+		} else {
+			amountFee := amountConverted.Add(math.NewUint(uint64(feeNoDenom)))
+			if balance.LT(amountFee) {
+				return fmt.Errorf("the balance available (%s) is less than the amount (%s) plus the fee (%d), transaction will fail", balance, amountWithoutDenom, feeNoDenom)
+			}
 		}
 	}
 
@@ -266,8 +262,8 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 		validator,
 		amount,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
-		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--fees", fees,
+		"--gas", fmt.Sprintf("%d", getGas(conf)),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -313,20 +309,6 @@ func cmdClaimValidator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	// Use denom from flag if specified, if not, then try
-	// to retrieve it from the config, if not in the config
-	// try to retrieve from the chain registry.
-	var denom string
-	isDenomSet := cmd.Flags().Changed("denom")
-	if isDenomSet {
-		denom = flagDenom
-	} else {
-		denom, err = getDenom(conf, chainName)
-		if err != nil {
-			return fmt.Errorf("denom not found in config or chain registry: %s", err)
-		}
-	}
-
 	nodeAddress := chain.Node
 	if flagNode != "" {
 		nodeAddress = flagNode
@@ -338,13 +320,19 @@ func cmdClaimValidator(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Get fees
+	fees, err := getFees(cmd)
+	if err != nil {
+		return err
+	}
+
 	// [binary] tx distribution withdraw-rewards [validator-addr]
 	cmdArgs := []string{"tx", "distribution", "withdraw-rewards",
 		valAddress,
 		"--commission",
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
-		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--fees", fees,
+		"--gas", fmt.Sprintf("%d", getGas(conf)),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -419,20 +407,6 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	// Use denom from flag if specified, if not, then try
-	// to retrieve it from the config, if not in the config
-	// try to retrieve from the chain registry.
-	var denom string
-	isDenomSet := cmd.Flags().Changed("denom")
-	if isDenomSet {
-		denom = flagDenom
-	} else {
-		denom, err = getDenom(conf, chainName)
-		if err != nil {
-			return fmt.Errorf("denom not found in config or chain registry: %s", err)
-		}
-	}
-
 	nodeAddress := chain.Node
 	if flagNode != "" {
 		nodeAddress = flagNode
@@ -444,13 +418,19 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Get fees
+	fees, err := getFees(cmd)
+	if err != nil {
+		return err
+	}
+
 	// gaiad tx authz grant
 	cmdArgs := []string{"tx", "authz", "grant", grantee, "generic",
 		"--expiration", fmt.Sprintf("%d", expireTimestamp),
 		"--msg-type", cosmosMsg,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
-		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--fees", fees,
+		"--gas", fmt.Sprintf("%d", getGas(conf)),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -511,20 +491,6 @@ func cmdRevokeAuthz(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	// Use denom from flag if specified, if not, then try
-	// to retrieve it from the config, if not in the config
-	// try to retrieve from the chain registry.
-	var denom string
-	isDenomSet := cmd.Flags().Changed("denom")
-	if isDenomSet {
-		denom = flagDenom
-	} else {
-		denom, err = getDenom(conf, chainName)
-		if err != nil {
-			return fmt.Errorf("denom not found in config or chain registry: %s", err)
-		}
-	}
-
 	nodeAddress := chain.Node
 	if flagNode != "" {
 		nodeAddress = flagNode
@@ -536,11 +502,17 @@ func cmdRevokeAuthz(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Get fees
+	fees, err := getFees(cmd)
+	if err != nil {
+		return err
+	}
+
 	// gaiad tx authz grant
 	cmdArgs := []string{"tx", "authz", "revoke", grantee, cosmosMsg,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
-		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--fees", fees,
+		"--gas", fmt.Sprintf("%d", getGas(conf)),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -585,27 +557,10 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("key %s not found in config", keyName)
 	}
 
-	// Use denom from flag if specified, if not, then try
-	// to retrieve it from the config, if not in the config
-	// try to retrieve from the chain registry.
-	var denom string
-	isDenomSet := cmd.Flags().Changed("denom")
-	if isDenomSet {
-		denom = flagDenom
-	} else {
-		denom, err = getDenom(conf, chainName)
-		if err != nil {
-			return fmt.Errorf("denom not found in config or chain registry: %s", err)
-		}
-	}
-
 	nodeAddress := chain.Node
 	if flagNode != "" {
 		nodeAddress = flagNode
 	}
-
-	// TODO:
-	// keyring backend?
 
 	binary := chain.Binary
 	address, err := bech32ify(key.Address, chain.Prefix)
@@ -613,11 +568,17 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Get fees
+	fees, err := getFees(cmd)
+	if err != nil {
+		return err
+	}
+
 	// gaiad tx gov vote <prop id> <option> --from <from> --generate-only
 	cmdArgs := []string{"tx", "gov", "vote", propID, voteOption,
 		"--from", address,
-		"--fees", fmt.Sprintf("%d%s", conf.DefaultFee, denom),
-		"--gas", fmt.Sprintf("%d", conf.DefaultGas),
+		"--fees", fees,
+		"--gas", fmt.Sprintf("%d", getGas(conf)),
 		"--generate-only",
 		"--chain-id", fmt.Sprintf("%s", chain.ID),
 	}
@@ -1310,4 +1271,25 @@ func getAccountBalance(address string, denom string, chain Chain) (math.Uint, er
 		}
 	}
 	return math.ZeroUint(), fmt.Errorf("cannot find balance for %s denom", denom)
+}
+
+func getGas(config *Config) int64 {
+	if flagGas > 0 {
+		return int64(flagGas)
+	} else {
+		if config.DefaultGas > 0 {
+			return config.DefaultGas
+		} else {
+			return int64(defaultGas)
+		}
+
+	}
+}
+
+func getFees(cmd *cobra.Command) (string, error) {
+	if cmd.Flags().Changed("fees") {
+		return flagFees, nil
+	} else {
+		return "", fmt.Errorf("please specify the '--fees' parameter")
+	}
 }
