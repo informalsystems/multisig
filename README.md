@@ -147,18 +147,17 @@ address = "cosmos1..."          # bech32 address of the key - same for everyone
 localname = "mycorp-multisig"   # name of this key in a signer's local keystore - can be different for everyone
 ```
 
-### Configure gas and fee
+### Configure gas
 
-If you specify default values for `gas` and `fee` in the configuration file those will be used instead of the hard-coded 
+If you specify a default value for `gas` in the configuration file those will be used instead of the hard-coded 
 values coded in the tool.
 
-For example, to set a default fee of `10000` and default gas of `300000` add this to the config file:
+For example, to set a default gas of `300000` add this to the config file:
 ```
-defaultFee = 10000
 defaultGas = 300000
 ```
 
-> Note: In the near future, multisig will support flags that you will be able to use to specify gas and fees.
+> Note: multisig also supports flags that you can specify gas and fees for transaction commands.
 
 ### Configure your Chains
 
@@ -178,7 +177,7 @@ name = "cosmos"                 # name of the chain
 binary = "gaiad"                # name of binary
 prefix = "cosmos"               # bech32 prefix
 id = "cosmoshub-4"              # chain-id
-denom = "uatom"                 # denom used to pay fees
+denom = "uatom"                 # native denom
 node = "http://localhost:26657" # a synced node - only needed for `tx` and `broadcast` commands
 ```
 
@@ -241,9 +240,7 @@ To overwrite the first tx, use `--force`.
 multisig tx vote <chain name> <key name> <proposal number> <vote option> [flags]
 ```
 
-This will generate a tx for a governance proposal vote and it will push it to s3 directly. You will need to specify the proposal number and the vote (e.g. yes, no). 
-You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the 
-chain registry.
+This will generate a tx for a governance proposal vote and it will push it to s3 directly. You will need to specify the proposal number and the vote (e.g. yes, no).
 
 ### tx withdraw
 
@@ -252,8 +249,6 @@ multisig tx withdraw <chain name> <key name>
 ```
 
 This will generate a tx for withdraw all rewards for the account, and it will push it to s3 directly.
-You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
-chain registry.
 
 ### tx claim-validator
 
@@ -262,8 +257,6 @@ multisig tx claim-validator <chain name> <key name> <validator_address>
 ```
 
 This will generate a tx to claim the rewards and commission from a validator account, and it will push it to s3 directly.
-You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
-chain registry.
 
 ### tx authz grant
 
@@ -274,8 +267,6 @@ multisig tx authz grant <chain name> <key name> <grantee address> <delegate|with
 This will generate a tx to grant authz permissions to a particular account (grantee). You will also need to specify the message-type that 
 you want to grant permission. Currently, only withdraw, commission, delegate, vote are supported. You also need to specify the expiration for
 this grant, for example to grant permissions for 30 days please specify '30' as the '<expiration> parameter.'
-You will also need to specify the denom for the fees (e.g. uatom) if it cannot be retrieved from the configuration file or the
-chain registry.
 
 ### tx authz revoke
 

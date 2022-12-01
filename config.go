@@ -23,7 +23,7 @@ type Chain struct {
 	Prefix string // bech32 address prefix
 	ID     string // chain id for signing
 	Node   string // node to broadcast signed txs to
-	Denom  string // denom used for fees
+	Denom  string // native denom
 }
 
 // A key we sign txs with
