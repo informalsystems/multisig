@@ -241,21 +241,27 @@ func init() {
 	addTxCmdCommonFlags(pushCmd)
 
 	addTxCmdCommonFlags(voteCmd)
+	addTxCmdGasFeesFlags(voteCmd)
 	addDenomFlags(voteCmd)
 
 	addTxCmdCommonFlags(withdrawCmd)
+	addTxCmdGasFeesFlags(withdrawCmd)
 	addDenomFlags(withdrawCmd)
 
 	addTxCmdCommonFlags(claimValidatorCmd)
+	addTxCmdGasFeesFlags(claimValidatorCmd)
 	addDenomFlags(claimValidatorCmd)
 
 	addTxCmdCommonFlags(delegateCmd)
+	addTxCmdGasFeesFlags(delegateCmd)
 	addDenomFlags(delegateCmd)
 
 	addTxCmdCommonFlags(authzGrantCmd)
+	addTxCmdGasFeesFlags(authzGrantCmd)
 	addDenomFlags(authzGrantCmd)
 
 	addTxCmdCommonFlags(authzRevokeCmd)
+	addTxCmdGasFeesFlags(authzRevokeCmd)
 	addDenomFlags(authzRevokeCmd)
 
 	addSignCmdFlags(signCmd)
