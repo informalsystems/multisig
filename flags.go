@@ -10,7 +10,7 @@ func addTxCmdCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&flagForce, "force", "f", false, "overwrite files already there")
 	cmd.Flags().BoolVarP(&flagAdditional, "additional", "x", false, "add additional txs with higher sequence number")
 	cmd.Flags().StringVarP(&flagDescription, "description", "i", "", "information about the transaction")
-	cmd.Flags().IntVarP(&flagGas, "gas", "", 0, "gas limit for the transaction, e.g. 200000")
+	cmd.Flags().IntVarP(&flagGas, "gas", "g", 0, "gas limit for the transaction, e.g. 200000")
 	cmd.Flags().StringVarP(&flagFees, "fees", "", "", "fees to pay for the transaction, e.g. 10uatom")
 }
 
