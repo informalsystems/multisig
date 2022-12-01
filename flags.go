@@ -12,6 +12,12 @@ func addTxCmdCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&flagDescription, "description", "i", "", "information about the transaction")
 }
 
+// addTxCmdGasFeesFlags defines flags for gas and fees to be used in transactions
+func addTxCmdGasFeesFlags(cmd *cobra.Command) {
+	cmd.Flags().IntVarP(&flagGas, "gas", "g", 0, "gas limit for the transaction, e.g. 200000")
+	cmd.Flags().StringVarP(&flagFees, "fees", "", "", "fees to pay for the transaction, e.g. 10uatom")
+}
+
 // addDenomFlags defines a denom flag to be reused across commands
 func addDenomFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&flagDenom, "denom", "d", "", "fee denom, for offline creation")
@@ -33,7 +39,6 @@ func addListCmdFlags(cmd *cobra.Command) {
 func addBroadcastCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&flagNode, "node", "n", "", "node address to broadcast too. flag overrides config")
 	cmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to broadcast")
-	// broacastCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "description of the tx to be logged")
 }
 
 // addDeleteCmdFlags defines common flags to be used in the delete command

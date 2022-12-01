@@ -10,8 +10,7 @@ user = "eb"
 # gaiad uses "os" by default, but I use "test"
 keyringbackend = "os"
 
-# default gas and fee
-defaultFee = 10000
+# default gas
 defaultGas = 300000
 
 # aws credentials
@@ -47,6 +46,7 @@ name = "cosmos"                 # name of the chain
 binary = "gaiad"                # name of binary
 prefix = "cosmos"               # bech32 prefix
 id = "cosmoshub-4"              # chain-id
+denom = "uatom"                 # native denom
 node = "http://localhost:26657" # a synced node - only needed for `generate` and `broadcast` commands
 
 

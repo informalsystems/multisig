@@ -11,6 +11,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 )
 
+var (
+	defaultBucketRegion = "ca-central-1"
+	defaultGas          = 300000
+)
+
 // A chain we sign txs on
 type Chain struct {
 	Name   string // chain name
@@ -18,7 +23,7 @@ type Chain struct {
 	Prefix string // bech32 address prefix
 	ID     string // chain id for signing
 	Node   string // node to broadcast signed txs to
-	Denom  string // denom used for fees
+	Denom  string // native denom
 }
 
 // A key we sign txs with
@@ -41,7 +46,6 @@ type AWS struct {
 type Config struct {
 	User           string
 	KeyringBackend string
-	DefaultFee     int64
 	DefaultGas     int64
 	AWS            AWS
 	Keys           []Key
@@ -93,14 +97,6 @@ func loadConfig(filename string) (*Config, error) {
 
 	if c.AWS.BucketRegion == "" {
 		c.AWS.BucketRegion = defaultBucketRegion
-	}
-
-	if c.DefaultGas == 0 {
-		c.DefaultGas = int64(defaultGas)
-	}
-
-	if c.DefaultFee == 0 {
-		c.DefaultFee = int64(defaultFee)
 	}
 
 	return c, nil
