@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/spf13/cobra"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -168,8 +169,6 @@ func cmdWithdraw(cmd *cobra.Command, args []string) error {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	}
 
-	// TODO: do we need these?
-	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
 	execCmd := exec.Command(binary, cmdArgs...)
 	fmt.Println(execCmd)
 	unsignedBytes, err := execCmd.CombinedOutput()
@@ -272,8 +271,6 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	}
 
-	// TODO: do we need these?
-	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
 	execCmd := exec.Command(binary, cmdArgs...)
 	fmt.Println(execCmd)
 	unsignedBytes, err := execCmd.CombinedOutput()
@@ -587,8 +584,6 @@ func cmdVote(cmd *cobra.Command, args []string) error {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
 	}
 
-	// TODO: do we need these?
-	// cmdArgs = append(cmdArgs, "--keyring-backend", backend)
 	execCmd := exec.Command(binary, cmdArgs...)
 	fmt.Println(execCmd)
 	unsignedBytes, err := execCmd.CombinedOutput()
@@ -854,8 +849,8 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 	_ = numBytes
 
 	// TODO: pretty print and confirm the unsigned tx
-	unsignedBytes, _ := ioutil.ReadAll(unsignedFile)
-	signDataBytes, _ := ioutil.ReadAll(signDataFile)
+	unsignedBytes, _ := io.ReadAll(unsignedFile)
+	signDataBytes, _ := io.ReadAll(signDataFile)
 	fmt.Println("You are signing the following tx:")
 	fmt.Println(string(unsignedBytes))
 	fmt.Println("With the following sign data:")
