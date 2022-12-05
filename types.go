@@ -91,6 +91,34 @@ type EthAccount struct {
 	CodeHash string `json:"code_hash"`
 }
 
+type StridePeriodicVestingAccount struct {
+	Type               string `json:"@type"`
+	BaseVestingAccount struct {
+		BaseAccount struct {
+			Address       string      `json:"address"`
+			PubKey        interface{} `json:"pub_key"`
+			AccountNumber string      `json:"account_number"`
+			Sequence      string      `json:"sequence"`
+		} `json:"base_account"`
+		OriginalVesting []struct {
+			Denom  string `json:"denom"`
+			Amount string `json:"amount"`
+		} `json:"original_vesting"`
+		DelegatedFree    []interface{} `json:"delegated_free"`
+		DelegatedVesting []interface{} `json:"delegated_vesting"`
+		EndTime          string        `json:"end_time"`
+	} `json:"base_vesting_account"`
+	VestingPeriods []struct {
+		StartTime string `json:"start_time"`
+		Length    string `json:"length"`
+		Amount    []struct {
+			Denom  string `json:"denom"`
+			Amount string `json:"amount"`
+		} `json:"amount"`
+		ActionType int `json:"action_type"`
+	} `json:"vesting_periods"`
+}
+
 type BaseAccount struct {
 	Type    string `json:"@type"`
 	Address string `json:"address"`

@@ -1191,6 +1191,21 @@ func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 			return 0, 0, fmt.Errorf("sequence number is not an integer")
 		}
 		return accInt, seqInt, nil
+	} else if acctType.Type == "/stride.vesting.StridePeriodicVestingAccount" {
+		var spva StridePeriodicVestingAccount
+		err := json.Unmarshal(queryResponseBytes, &spva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error un-marshalling Stride Periodic Vesting Account account")
+		}
+		accInt, err := strconv.Atoi(spva.BaseVestingAccount.BaseAccount.AccountNumber)
+		if err != nil {
+			return 0, 0, fmt.Errorf("account number is not an integer")
+		}
+		seqInt, err := strconv.Atoi(spva.BaseVestingAccount.BaseAccount.Sequence)
+		if err != nil {
+			return 0, 0, fmt.Errorf("sequence number is not an integer")
+		}
+		return accInt, seqInt, nil
 	} else if strings.Contains(acctType.Type, "EthAccount") {
 		var eth EthAccount
 		err := json.Unmarshal(queryResponseBytes, &eth)
