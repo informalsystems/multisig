@@ -61,61 +61,9 @@ func cmdDelete(cobraCmd *cobra.Command, args []string) error {
 	txIndex := flagTxIndex
 	txDir := filepath.Join(chainName, keyName, fmt.Sprintf("%d", txIndex))
 
-	sess := awsSession(conf.AWS)
-	svc := s3.New(sess)
-
-	// list all items in bucket
-	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
+	err = deleteAllFilesInPath(txDir, conf)
 	if err != nil {
 		return err
-	}
-
-	fileNames := []string{}
-	for _, item := range resp.Contents {
-		itemKey := *item.Key
-		if strings.HasPrefix(itemKey, txDir) && !strings.HasSuffix(itemKey, "/") {
-			base := filepath.Base(itemKey)
-
-			// sanity check
-			if len(base) == 0 {
-				return fmt.Errorf("%s had empty base", itemKey)
-			}
-
-			fileNames = append(fileNames, base)
-		}
-	}
-
-	// Check if there is anything in the bucket, if not then return
-	if len(fileNames) == 0 {
-		fmt.Printf("no files in %s, nothing will be deleted\n", txDir)
-		return nil
-	}
-
-	sep := "---------------------------------------------------------------------"
-	fmt.Println(sep)
-	// cleanup txDir in the bucket by deleting everything
-	for _, f := range fileNames {
-		awsString := aws.String(filepath.Join(txDir, f))
-		_, err = svc.DeleteObject(&s3.DeleteObjectInput{
-			Bucket: aws.String(conf.AWS.Bucket),
-			Key:    awsString,
-		})
-		if err != nil {
-			return err
-		} else {
-			fmt.Printf("%v will be deleted...\n", *awsString)
-		}
-
-		err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
-			Bucket: aws.String(conf.AWS.Bucket),
-			Key:    awsString,
-		})
-		if err != nil {
-			return err
-		} else {
-			fmt.Printf("deleted %v !\n", *awsString)
-			fmt.Println(sep)
-		}
 	}
 
 	return nil
@@ -705,7 +653,7 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 		return err
 	}
 
-	// if there is already files there and we don't specify -f or -x, return
+	// if there is already files there, and we don't specify -f or -x, return
 	if len(files) > 0 && !(flagForce || flagAdditional) {
 		return fmt.Errorf("Files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
 	} else if len(files) == 0 && (flagForce || flagAdditional) {
@@ -713,9 +661,9 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 	}
 
 	// now, either:
-	// its empty, so push files
-	// its not empty, overwrite files (--force)
-	// its not empty, add additional files (--additional)
+	// it is empty, so push files
+	// it is not empty, overwrite files (--force)
+	// it is not empty, add additional files (--additional)
 
 	// we always start paths with 0, to support multiple txs per chain/key pair
 	N := 0
@@ -749,6 +697,12 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 	}
 	txDir = filepath.Join(txDir, fmt.Sprintf("%d", N))
 
+	// Delete existing files in the path
+	err = deleteAllFilesInPath(txDir, conf)
+	if err != nil {
+		return err
+	}
+
 	// create and marshal the sign data
 	signData := SignData{
 		Account:     accountNum,
@@ -771,6 +725,7 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 		return err
 	}
 
+	fmt.Printf("pushed %s and %s files to %s\n", unsignedJSON, signedJSON, txDir)
 	return nil
 }
 
@@ -1307,4 +1262,76 @@ func getFeesParameter(cmd *cobra.Command) (sdk.DecCoin, error) {
 	} else {
 		return sdk.DecCoin{}, fmt.Errorf("please specify the '--fees' parameter")
 	}
+}
+
+func listFilesInPath(svc *s3.S3, conf *Config, txDir string) ([]string, error) {
+	// list all items in bucket
+	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(conf.AWS.Bucket)})
+	if err != nil {
+		return nil, err
+	}
+
+	fileNames := []string{}
+	for _, item := range resp.Contents {
+		itemKey := *item.Key
+		if strings.HasPrefix(itemKey, txDir) && !strings.HasSuffix(itemKey, "/") {
+			base := filepath.Base(itemKey)
+
+			// sanity check
+			if len(base) == 0 {
+				return nil, fmt.Errorf("%s had empty base", itemKey)
+			}
+
+			fileNames = append(fileNames, base)
+		}
+	}
+	return fileNames, nil
+}
+
+func deleteAllFilesInPath(txDir string, conf *Config) error {
+
+	sess := awsSession(conf.AWS)
+	svc := s3.New(sess)
+
+	fileNames, err := listFilesInPath(svc, conf, txDir)
+	if err != nil {
+		return err
+	}
+
+	// Check if there is anything in the bucket, if not then return
+	if len(fileNames) == 0 {
+		fmt.Printf("no existing files in %s, nothing will be deleted\n", txDir)
+		return nil
+	} else {
+		fmt.Printf("found %d files in %s, deleting files...\n", len(fileNames), txDir)
+	}
+
+	sep := "---------------------------------------------------------------------"
+	fmt.Println(sep)
+
+	// cleanup txDir in the bucket by deleting everything
+	for _, f := range fileNames {
+		awsString := aws.String(filepath.Join(txDir, f))
+		_, err = svc.DeleteObject(&s3.DeleteObjectInput{
+			Bucket: aws.String(conf.AWS.Bucket),
+			Key:    awsString,
+		})
+		if err != nil {
+			return err
+		} else {
+			fmt.Printf("%v will be deleted...\n", *awsString)
+		}
+
+		err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+			Bucket: aws.String(conf.AWS.Bucket),
+			Key:    awsString,
+		})
+		if err != nil {
+			return err
+		} else {
+			fmt.Printf("deleted %v !\n", *awsString)
+			fmt.Println(sep)
+		}
+	}
+	return nil
 }
