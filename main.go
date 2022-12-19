@@ -980,6 +980,15 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	}
 	cmdArgs = append(cmdArgs, "--account-number", accNum, "--sequence", seqNum, "--chain-id", chainID, "--offline")
 	cmdArgs = append(cmdArgs, "--keyring-backend", backend) // sigh
+
+	nodeAddress := chain.Node
+	if flagNode != "" {
+		nodeAddress = flagNode
+	}
+	if nodeAddress != "" {
+		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+
 	cmd := exec.Command(binary, cmdArgs...)
 	b, err := cmd.CombinedOutput()
 	if err != nil {
@@ -995,11 +1004,6 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 
 	if err := ioutil.WriteFile(signedJSON, b, 0666); err != nil {
 		return err
-	}
-
-	nodeAddress := chain.Node
-	if flagNode != "" {
-		nodeAddress = flagNode
 	}
 
 	// broadcast tx
