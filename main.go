@@ -954,7 +954,7 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	}
 
 	// read and unmarshal the sign data
-	signDataBytes, err := ioutil.ReadFile(signDataJSON)
+	signDataBytes, err := os.ReadFile(signDataJSON)
 	if err != nil {
 		return err
 	}
@@ -970,8 +970,19 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	chainID := signData.ChainID
 	unsignedFileName := unsignedJSON
 	backend := conf.KeyringBackend
-	// TODO: can I used the address directly here instead ?
-	localMultisigName := key.LocalName
+
+	// Check if the local multisig key name was passed as a parameter,
+	// if not then check the config file, if also not in the file
+	// then return an error
+	var localMultisigName string
+	if cobraCmd.Flags().Changed("key") {
+		localMultisigName = flagMultisigKey
+	} else {
+		localMultisigName := key.LocalName
+		if localMultisigName == "" {
+			return fmt.Errorf("localname property for %s key entry in the configuration file is empty", key.Name)
+		}
+	}
 
 	// gaiad tx multisign unsigned.json <local multisig name> <sig 1> <sig 2> ...  --account-number <acc> --sequence <seq> --chain-id <id>
 	cmdArgs := []string{"tx", "multisign", unsignedFileName, localMultisigName}
@@ -1002,7 +1013,7 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	fmt.Println(cmd)
 	fmt.Println(string(b))
 
-	if err := ioutil.WriteFile(signedJSON, b, 0666); err != nil {
+	if err := os.WriteFile(signedJSON, b, 0666); err != nil {
 		return err
 	}
 

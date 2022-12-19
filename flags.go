@@ -39,6 +39,7 @@ func addListCmdFlags(cmd *cobra.Command) {
 func addBroadcastCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&flagNode, "node", "n", "", "node address to broadcast too. flag overrides config")
 	cmd.Flags().IntVarP(&flagTxIndex, "index", "i", 0, "index of the tx to broadcast")
+	cmd.Flags().StringVarP(&flagMultisigKey, "key", "k", "", "name of the local multisig key name, flag overrides the config")
 }
 
 // addDeleteCmdFlags defines common flags to be used in the delete command

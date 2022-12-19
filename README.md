@@ -333,13 +333,15 @@ Where `--from` is the name of the key in your local keystore, the same as you wo
 To assemble the signed tx and broadcast it, run:
 
 ```
-multisig broadcast <chain name> <key name> --index <tx index>
+multisig broadcast <chain name> <key name>
 ```
 
-Where the `--index` is the tx index to sign for (default 0). Note txs must be
-broadcast in order.
+The `--index` flag can be used to sign a transaction under that index (default 0). Note that transactions must be
+broadcast in the index sequential order (e.g. 0, 1, 2).
 
 The `--node` flag can be used to overwrite what's in the config file.
+
+The `--key` flag can be used to specify the local multisig key name.
 
 ## Raw
 
