@@ -206,6 +206,7 @@ var (
 	flagConfigPath  string
 	flagGas         int
 	flagFees        string
+	flagMultisigKey string
 )
 
 func init() {

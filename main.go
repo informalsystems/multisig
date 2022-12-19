@@ -970,10 +970,18 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	chainID := signData.ChainID
 	unsignedFileName := unsignedJSON
 	backend := conf.KeyringBackend
-	// TODO: can I used the address directly here instead ?
-	localMultisigName := key.LocalName
-	if localMultisigName == "" {
-		return fmt.Errorf("localname property for %s key entry in the configuration file is empty", key.Name)
+
+	// Check if the local multisig key name was passed as a parameter,
+	// if not then check the config file, if also not in the file
+	// then return an error
+	var localMultisigName string
+	if cobraCmd.Flags().Changed("key") {
+		localMultisigName = flagMultisigKey
+	} else {
+		localMultisigName := key.LocalName
+		if localMultisigName == "" {
+			return fmt.Errorf("localname property for %s key entry in the configuration file is empty", key.Name)
+		}
 	}
 
 	// gaiad tx multisign unsigned.json <local multisig name> <sig 1> <sig 2> ...  --account-number <acc> --sequence <seq> --chain-id <id>
