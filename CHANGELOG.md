@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## v0.4.0
+*December 20th, 2022*
+
+### Highlights
+
+This major release implements a couple new transaction commands and adds additional flags to improve the flexibility when adding new transactions such as ability to specify gas and fees.
+
+#### FEATURES
+
+- Changed the way `EthAccount` account types are checked  ([#63](https://github.com/informalsystems/multisig/pull/63))
+- Added a new command to generate a withdraw-rewards transaction to claim validators' rewards and commission ([#65](https://github.com/informalsystems/multisig/pull/65))
+- Added a new command to create a delegate transaction ([#66](https://github.com/informalsystems/multisig/pull/66))
+- Allow `fees` and `gas` flags to be specified when creating a new transaction ([#70](https://github.com/informalsystems/multisig/pull/70))
+- Added support for '/stride.vesting.StridePeriodicVestingAccount' ([#73](https://github.com/informalsystems/multisig/pull/73))
+- Upgraded Cosmos SDK version (v0.45.9) and Golang version (v1.18) ([#80](https://github.com/informalsystems/multisig/pull/80))
+- Implemented logic to add a --node flag to the multisig broadcast command ([#82](https://github.com/informalsystems/multisig/pull/82))
+- Added logic to allow a user to specify a --key flag to the multisig broadcast command ([#83](https://github.com/informalsystems/multisig/pull/83))
+
+#### BUG FIXES
+
+- Refactored the logic to delete files from S3. Now when pushing (--force) tx files, all existing files in the path will be deleted first ([#74](https://github.com/informalsystems/multisig/pull/74))
+
 ## v0.3.0
 *September 8th, 2022*
 ### Highlights
