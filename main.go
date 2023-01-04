@@ -978,10 +978,10 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	if cobraCmd.Flags().Changed("key") {
 		localMultisigName = flagMultisigKey
 	} else {
-		localMultisigName := key.LocalName
-		if localMultisigName == "" {
-			return fmt.Errorf("localname property for %s key entry in the configuration file is empty", key.Name)
-		}
+		localMultisigName = key.LocalName
+	}
+	if localMultisigName == "" {
+		return fmt.Errorf("localname property for %s key entry in the configuration file is empty", key.Name)
 	}
 
 	// gaiad tx multisign unsigned.json <local multisig name> <sig 1> <sig 2> ...  --account-number <acc> --sequence <seq> --chain-id <id>
