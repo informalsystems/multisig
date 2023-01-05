@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased
+
+#### BUG FIXES
+
+- `localname` settings in the config were not being applied properly, and would
+  result in errors when running `multisig broadcast`
+  ([#85](https://github.com/informalsystems/multisig/pull/85))
+
+
 ## v0.4.0
 *December 20th, 2022*
 
