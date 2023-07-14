@@ -833,6 +833,9 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 		"--offline",
 	}
 	cmdArgs = append(cmdArgs, "--keyring-backend", backend)
+	if flagHomePath != "" {
+		cmdArgs = append(cmdArgs, "--home", flagHomePath)
+	}
 	cmd := exec.Command(binary, cmdArgs...)
 	b, err := cmd.CombinedOutput()
 	if err != nil {
@@ -998,6 +1001,9 @@ func cmdBroadcast(cobraCmd *cobra.Command, args []string) error {
 	}
 	if nodeAddress != "" {
 		cmdArgs = append(cmdArgs, "--node", nodeAddress)
+	}
+	if flagHomePath != "" {
+		cmdArgs = append(cmdArgs, "--home", flagHomePath)
 	}
 
 	cmd := exec.Command(binary, cmdArgs...)

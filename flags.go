@@ -50,4 +50,5 @@ func addDeleteCmdFlags(cmd *cobra.Command) {
 // addGlobalFlags defines flags to be used regardless of the command used
 func addGlobalFlags(cmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVarP(&flagConfigPath, "config", "c", "", "custom config path")
+	rootCmd.PersistentFlags().StringVarP(&flagHomePath, "home", "", "", "custom home path for keystore for sign and broadcast cmds")
 }
