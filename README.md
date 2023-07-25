@@ -261,7 +261,7 @@ This will generate a tx to claim the rewards and commission from a validator acc
 ### tx authz grant
 
 ```
-multisig tx authz grant <chain name> <key name> <grantee address> <delegate|withdraw|commission|vote> <expiration in days>
+multisig tx authz grant <chain name> <key name> <grantee address> <delegate|withdraw|commission|vote|unbond|redelegate> <expiration in days>
 ```
 
 This will generate a tx to grant authz permissions to a particular account (grantee). You will also need to specify the message-type that 
@@ -271,7 +271,7 @@ this grant, for example to grant permissions for 30 days please specify '30' as 
 ### tx authz revoke
 
 ```
-multisig tx authz revoke <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote> [flags]
+multisig tx authz revoke <chain name> <key name> <grantee address> <delegate|withdraw|commission|vote|unbond|redelegate> [flags]
 ```
 
 This will generate a tx to revoke a previously granted authz permission
