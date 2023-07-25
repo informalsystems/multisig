@@ -31,7 +31,7 @@ Quick summary, with much more below:
   trusted
 - `multisig tx push` takes an unsigned tx file and pushes it to the s3 directory along with data needed for signing (eg. account number, sequence number, chain id)
 - `multisig tx vote` generate a vote tx and push it to s3 directory
-- `multisig tx authz` generate an authz grant tx (delegate, withdraw, commission, vote) or revoke an authz authorization
+- `multisig tx authz` generate an authz grant tx (delegate, withdraw, commission, vote, unbond, redelegate) or revoke an authz authorization
 - `multisig sign` fetches the unsigned tx and signing data for a given chain and key, signs it using the correct binary (eg. `gaiad tx sign unsigned.json ...`), and pushes the signature back to the directory
 - `multisig list` lists the files in a directory so you can see who has signed
 - `multisig broadcast` fetches all the data from a directory, compiles the signed tx (eg. `gaiad tx multisign unsigned.json ...`), broadcasts it using the configured node, and deletes all the files from the directory so signing can start fresh for a new tx

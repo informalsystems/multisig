@@ -45,7 +45,7 @@ var authzCmd = &cobra.Command{
 }
 
 var authzGrantCmd = &cobra.Command{
-	Use:   "grant <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote> <expiration days>",
+	Use:   "grant <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote|unbond|redelegate> <expiration days>",
 	Short: "generate an authz grant tx and push it",
 	Long: "\nThis commands allows you to generate an unsigned tx to grant authorization " +
 		"to a 'grantee' address that will be able to execute transactions as specified in " +
@@ -68,7 +68,7 @@ var authzGrantCmd = &cobra.Command{
 }
 
 var authzRevokeCmd = &cobra.Command{
-	Use:   "revoke <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote>",
+	Use:   "revoke <chain name> <key name> <grantee address> <withdraw|commission|delegate|vote|unbond|redelegate>",
 	Short: "generate an authz revoke tx and push it",
 	Long: "\nThis commands allows you to generate an unsigned tx to revoke an existing authorization " +
 		"to a 'grantee' address for a particular '<message-type>' (e.g. withdraw)\n " +

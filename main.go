@@ -323,6 +323,10 @@ func cmdGrantAuthz(cmd *cobra.Command, args []string) error {
 		cosmosMsg = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
 	case "vote":
 		cosmosMsg = "/cosmos.gov.v1beta1.MsgVote"
+	case "unbond":
+		cosmosMsg = "/cosmos.staking.v1beta1.MsgUndelegate"
+	case "redelegate":
+		cosmosMsg = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
 	default:
 		return fmt.Errorf("message type %s not supported", msgType)
 	}
@@ -416,6 +420,10 @@ func cmdRevokeAuthz(cmd *cobra.Command, args []string) error {
 		cosmosMsg = "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission"
 	case "vote":
 		cosmosMsg = "/cosmos.gov.v1beta1.MsgVote"
+	case "unbond":
+		cosmosMsg = "/cosmos.staking.v1beta1.MsgUndelegate"
+	case "redelegate":
+		cosmosMsg = "/cosmos.staking.v1beta1.MsgBeginRedelegate"
 	default:
 		return fmt.Errorf("message type %s not supported", msgType)
 	}
