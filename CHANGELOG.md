@@ -2,12 +2,18 @@
 
 ## Unreleased
 
+## v0.4.1
+*April 16th, 2024*
+
 #### BUG FIXES
 
 - `localname` settings in the config were not being applied properly, and would
   result in errors when running `multisig broadcast`
   ([#85](https://github.com/informalsystems/multisig/pull/85))
 
+### FEATURES
+
+- multisig can now handle `DelayedVestingAccount` vesting account types ([commit](https://github.com/informalsystems/multisig/commit/0edbd78f67351d78ffd5cc9417fb0c877ed18f37))
 
 ## v0.4.0
 *December 20th, 2022*
