@@ -5,9 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: something more intelligent
+// VERSION TODO: something more intelligent
 // Remember to change this every time ...
-const VERSION = "0.4.0"
+const VERSION = "0.4.1"
 
 var rootCmd = &cobra.Command{
 	Use:     "multisig",

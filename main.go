@@ -10,7 +10,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -33,7 +32,7 @@ var (
 	signDataJSON = "signdata.json"
 )
 
-// Data we need for signers to sign a tx (eg. without access to a node)
+// SignData Data we need for signers to sign a tx (eg. without access to a node)
 type SignData struct {
 	Account     int    `json:"account"`
 	Sequence    int    `json:"sequence"`
@@ -559,7 +558,7 @@ func cmdPush(cmd *cobra.Command, args []string) error {
 	chainName := args[1]
 	keyName := args[2]
 
-	unsignedBytes, err := ioutil.ReadFile(txFile)
+	unsignedBytes, err := os.ReadFile(txFile)
 	if err != nil {
 		return err
 	}
@@ -586,7 +585,7 @@ func cmdPush(cmd *cobra.Command, args []string) error {
 func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Command) error {
 
 	if flagForce && flagAdditional {
-		return fmt.Errorf("Cannot specify both --force and --additional")
+		return fmt.Errorf("cannot specify both --force and --additional")
 	}
 
 	conf, err := loadConfig(flagConfigPath)
@@ -773,11 +772,13 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 
 	// Make a file for the unsigned.json, download it
 
-	unsignedFile, err := ioutil.TempFile("", "temp")
+	unsignedFile, err := os.CreateTemp("", "temp")
 	if err != nil {
 		return err
 	}
-	defer os.Remove(unsignedFile.Name())
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(unsignedFile.Name())
 
 	unsignedPath := filepath.Join(txDir, unsignedJSON)
 	numBytes, err := downloader.Download(unsignedFile,
@@ -792,11 +793,13 @@ func cmdSign(cobraCmd *cobra.Command, args []string) error {
 
 	// Make a file for sign data, download it
 
-	signDataFile, err := ioutil.TempFile("", "temp")
+	signDataFile, err := os.CreateTemp("", "temp")
 	if err != nil {
 		return err
 	}
-	defer os.Remove(signDataFile.Name())
+	defer func(name string) {
+		_ = os.Remove(name)
+	}(signDataFile.Name())
 
 	signDataPath := filepath.Join(txDir, signDataJSON)
 	numBytes, err = downloader.Download(signDataFile,
@@ -1128,7 +1131,7 @@ func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 		acctType AccountType
 	)
 
-	json.Unmarshal(queryResponseBytes, &acctType)
+	_ = json.Unmarshal(queryResponseBytes, &acctType)
 
 	if acctType.Type == "/cosmos.auth.v1beta1.BaseAccount" {
 		var ba BaseAccount
@@ -1186,6 +1189,21 @@ func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 			return 0, 0, fmt.Errorf("account number is not an integer")
 		}
 		seqInt, err := strconv.Atoi(spva.BaseVestingAccount.BaseAccount.Sequence)
+		if err != nil {
+			return 0, 0, fmt.Errorf("sequence number is not an integer")
+		}
+		return accInt, seqInt, nil
+	} else if acctType.Type == "/cosmos.vesting.v1beta1.DelayedVestingAccount" {
+		var dva DelayedVestingAccount
+		err := json.Unmarshal(queryResponseBytes, &dva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("error un-marshalling Stride Periodic Vesting Account account")
+		}
+		accInt, err := strconv.Atoi(dva.BaseVestingAccount.BaseAccount.AccountNumber)
+		if err != nil {
+			return 0, 0, fmt.Errorf("account number is not an integer")
+		}
+		seqInt, err := strconv.Atoi(dva.BaseVestingAccount.BaseAccount.Sequence)
 		if err != nil {
 			return 0, 0, fmt.Errorf("sequence number is not an integer")
 		}
