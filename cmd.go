@@ -7,7 +7,7 @@ import (
 
 // VERSION TODO: something more intelligent
 // Remember to change this every time ...
-const VERSION = "0.4.1"
+const VERSION = "0.4.2"
 
 var rootCmd = &cobra.Command{
 	Use:     "multisig",

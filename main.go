@@ -569,8 +569,8 @@ func cmdPush(cmd *cobra.Command, args []string) error {
 	}
 
 	// Logic to emit a warning if the denoms don't match
-	denomInJson, err := parseDenomFromJson(unsignedBytes)
-	if err == nil {
+	denomInJson, err2 := parseDenomFromJson(unsignedBytes)
+	if err2 == nil {
 		denomConfig, err := getDenom(conf, chainName)
 		if err == nil {
 			if denomInJson != denomConfig {
@@ -630,15 +630,28 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 
 	// if both account and sequence are not set, get them from the node
 	if noAccOrSeq {
-		var err error
-		binary := chain.Binary
-		address, err := bech32ify(key.Address, chain.Prefix)
-		if err != nil {
-			return err
+		var err2 error
+		httpClient := NewHttpClient()
+
+		nodeInfo, err2 := GetNodeInfo(chain, httpClient)
+		if err2 != nil {
+			return err2
 		}
-		accountNum, sequenceNum, err = getAccSeq(binary, address, nodeAddress)
-		if err != nil {
-			return err
+
+		sdkVersion, err2 := parseSdkVersionFromJson(nodeInfo)
+		if err2 != nil {
+			return err2
+		}
+
+		binary := chain.Binary
+		address, err2 := bech32ify(key.Address, chain.Prefix)
+		if err2 != nil {
+			return err2
+		}
+
+		accountNum, sequenceNum, err2 = getAccSeq(binary, address, nodeAddress, sdkVersion)
+		if err2 != nil {
+			return err2
 		}
 	}
 
@@ -662,9 +675,9 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 
 	// if there is already files there, and we don't specify -f or -x, return
 	if len(files) > 0 && !(flagForce || flagAdditional) {
-		return fmt.Errorf("Files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
+		return fmt.Errorf("files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
 	} else if len(files) == 0 && (flagForce || flagAdditional) {
-		return fmt.Errorf("Path %s/%s is empty, Cannot specify --force or --additional", chainName, keyName)
+		return fmt.Errorf("path %s/%s is empty, Cannot specify --force or --additional", chainName, keyName)
 	}
 
 	// now, either:
@@ -1229,8 +1242,15 @@ func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
 }
 
 // Return: accountNumber, sequenceNumber, error
-func getAccSeq(binary, addr, node string) (int, int, error) {
-	cmdArgs := []string{"query", "--node", node, "account", addr, "--output", "json"}
+func getAccSeq(binary, addr, node string, sdkVersion string) (int, int, error) {
+	var cmdArgs []string
+
+	if strings.Contains(sdkVersion, "v0.50") {
+		cmdArgs = []string{"query", "auth", "account", addr, "--output", "json", "--node", node}
+	} else {
+		cmdArgs = []string{"query", "--node", node, "account", addr, "--output", "json"}
+	}
+
 	cmd := exec.Command(binary, cmdArgs...)
 	b, err := cmd.CombinedOutput()
 	if err != nil {
