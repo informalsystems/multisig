@@ -170,6 +170,33 @@ type AccountType struct {
 	Type string `json:"@type"`
 }
 
+type AcctType50 struct {
+	Account struct {
+		Type string `json:"type"`
+	}
+}
+
+type BaseAccount50 struct {
+	Account struct {
+		Type  string `json:"type"`
+		Value struct {
+			Address   string `json:"address"`
+			PublicKey struct {
+				Type  string `json:"type"`
+				Value struct {
+					Threshold string `json:"threshold"`
+					PubKeys   []struct {
+						Type  string `json:"type"`
+						Value string `json:"value"`
+					} `json:"pubkeys"`
+				}
+			}
+			AccountNumber string `json:"account_number"`
+			Sequence      string `json:"sequence"`
+		} `json:"value"`
+	} `json:"account"`
+}
+
 type AccountBalance struct {
 	Balances []struct {
 		Denom  string `json:"denom"`
