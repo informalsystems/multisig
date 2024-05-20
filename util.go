@@ -138,3 +138,12 @@ func parseDenomFromJson(tx []byte) (string, error) {
 	// in case cannot find the denom value in the json, return an error
 	return "", fmt.Errorf("cannot parse json, cannot find denom value")
 }
+
+func parseSdkVersionFromJson(nodeInfo NodeInfo) (string, error) {
+	for _, dep := range nodeInfo.ApplicationVersion.BuildDeps {
+		if dep.Path == "github.com/cosmos/cosmos-sdk" {
+			return dep.Version, nil
+		}
+	}
+	return "", errors.New(fmt.Sprintf("cannot parse sdk version, cannot find sdk version value"))
+}
