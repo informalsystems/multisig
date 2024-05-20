@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## v0.4.2
+*May 19th, 2024*
+
+### Improvements
+- multisig is able to process `BaseAccount` types from SDK v0.50.*
+- refactor account type processing to improve readability and remove hardcoded version from type URL
+
 ## v0.4.1
 *April 16th, 2024*
 
