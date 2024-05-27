@@ -1147,11 +1147,11 @@ func parseAccountQueryResponse(queryResponseBytes []byte, sdkVersion string) (in
 }
 
 func convertAcctDetails(acctSeq string, acctNum string) (int, int, error) {
-	accInt, err := strconv.Atoi(acctSeq)
+	accInt, err := strconv.Atoi(acctNum)
 	if err != nil {
 		return 0, 0, fmt.Errorf("account number is not an integer")
 	}
-	seqInt, err := strconv.Atoi(acctNum)
+	seqInt, err := strconv.Atoi(acctSeq)
 	if err != nil {
 		return 0, 0, fmt.Errorf("sequence number is not an integer")
 	}
