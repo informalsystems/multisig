@@ -569,8 +569,8 @@ func cmdPush(cmd *cobra.Command, args []string) error {
 	}
 
 	// Logic to emit a warning if the denoms don't match
-	denomInJson, err := parseDenomFromJson(unsignedBytes)
-	if err == nil {
+	denomInJson, err2 := parseDenomFromJson(unsignedBytes)
+	if err2 == nil {
 		denomConfig, err := getDenom(conf, chainName)
 		if err == nil {
 			if denomInJson != denomConfig {
@@ -630,15 +630,28 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 
 	// if both account and sequence are not set, get them from the node
 	if noAccOrSeq {
-		var err error
-		binary := chain.Binary
-		address, err := bech32ify(key.Address, chain.Prefix)
-		if err != nil {
-			return err
+		var err2 error
+		httpClient := NewHttpClient()
+
+		nodeInfo, err2 := GetNodeInfo(chain, httpClient)
+		if err2 != nil {
+			return err2
 		}
-		accountNum, sequenceNum, err = getAccSeq(binary, address, nodeAddress)
-		if err != nil {
-			return err
+
+		sdkVersion, err2 := parseSdkVersionFromJson(nodeInfo)
+		if err2 != nil {
+			return err2
+		}
+
+		binary := chain.Binary
+		address, err2 := bech32ify(key.Address, chain.Prefix)
+		if err2 != nil {
+			return err2
+		}
+
+		accountNum, sequenceNum, err2 = getAccSeq(binary, address, nodeAddress, sdkVersion)
+		if err2 != nil {
+			return err2
 		}
 	}
 
@@ -662,9 +675,9 @@ func pushTx(chainName, keyName string, unsignedTxBytes []byte, cmd *cobra.Comman
 
 	// if there is already files there, and we don't specify -f or -x, return
 	if len(files) > 0 && !(flagForce || flagAdditional) {
-		return fmt.Errorf("Files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
+		return fmt.Errorf("files already exist for %s/%s. Use -f to force overwrite or -x to add additional txs", chainName, keyName)
 	} else if len(files) == 0 && (flagForce || flagAdditional) {
-		return fmt.Errorf("Path %s/%s is empty, Cannot specify --force or --additional", chainName, keyName)
+		return fmt.Errorf("path %s/%s is empty, Cannot specify --force or --additional", chainName, keyName)
 	}
 
 	// now, either:
@@ -1124,113 +1137,110 @@ func parseTxResult(txResultBytes []byte) (int, string, error) {
 
 // Parse out the account and sequence number
 // Return: accountNumber, sequenceNumber, error
-func parseAccountQuery(queryResponseBytes []byte) (int, int, error) {
-	var (
-		accInt   int = 0
-		seqInt   int = 0
-		acctType AccountType
-	)
-
-	_ = json.Unmarshal(queryResponseBytes, &acctType)
-
-	if acctType.Type == "/cosmos.auth.v1beta1.BaseAccount" {
-		var ba BaseAccount
-		err := json.Unmarshal(queryResponseBytes, &ba)
-		if err != nil {
-			return 0, 0, fmt.Errorf("error un-marshalling base account")
-		}
-		accInt, err := strconv.Atoi(ba.AccountNumber)
-		if err != nil {
-			return 0, 0, fmt.Errorf("account number is not an integer")
-		}
-		seqInt, err := strconv.Atoi(ba.Sequence)
-		if err != nil {
-			return 0, 0, fmt.Errorf("sequence number is not an integer")
-		}
-		return accInt, seqInt, nil
-	} else if acctType.Type == "/cosmos.vesting.v1beta1.PeriodicVestingAccount" {
-		var pva PeriodicVestingAccount
-		err := json.Unmarshal(queryResponseBytes, &pva)
-		if err != nil {
-			return 0, 0, fmt.Errorf("error un-marshalling periodic vesting account")
-		}
-		accInt, err := strconv.Atoi(pva.BaseVestingAccount.BaseAccount.AccountNumber)
-		if err != nil {
-			return 0, 0, fmt.Errorf("account number is not an integer")
-		}
-		seqInt, err := strconv.Atoi(pva.BaseVestingAccount.BaseAccount.Sequence)
-		if err != nil {
-			return 0, 0, fmt.Errorf("sequence number is not an integer")
-		}
-		return accInt, seqInt, nil
-	} else if acctType.Type == "/cosmos.vesting.v1beta1.ContinuousVestingAccount" {
-		var cva ContinuousVestingAccount
-		err := json.Unmarshal(queryResponseBytes, &cva)
-		if err != nil {
-			return 0, 0, fmt.Errorf("error un-marshalling continuous vesting account")
-		}
-		accInt, err := strconv.Atoi(cva.BaseVestingAccount.BaseAccount.AccountNumber)
-		if err != nil {
-			return 0, 0, fmt.Errorf("account number is not an integer")
-		}
-		seqInt, err := strconv.Atoi(cva.BaseVestingAccount.BaseAccount.Sequence)
-		if err != nil {
-			return 0, 0, fmt.Errorf("sequence number is not an integer")
-		}
-		return accInt, seqInt, nil
-	} else if acctType.Type == "/stride.vesting.StridePeriodicVestingAccount" {
-		var spva StridePeriodicVestingAccount
-		err := json.Unmarshal(queryResponseBytes, &spva)
-		if err != nil {
-			return 0, 0, fmt.Errorf("error un-marshalling Stride Periodic Vesting Account account")
-		}
-		accInt, err := strconv.Atoi(spva.BaseVestingAccount.BaseAccount.AccountNumber)
-		if err != nil {
-			return 0, 0, fmt.Errorf("account number is not an integer")
-		}
-		seqInt, err := strconv.Atoi(spva.BaseVestingAccount.BaseAccount.Sequence)
-		if err != nil {
-			return 0, 0, fmt.Errorf("sequence number is not an integer")
-		}
-		return accInt, seqInt, nil
-	} else if acctType.Type == "/cosmos.vesting.v1beta1.DelayedVestingAccount" {
-		var dva DelayedVestingAccount
-		err := json.Unmarshal(queryResponseBytes, &dva)
-		if err != nil {
-			return 0, 0, fmt.Errorf("error un-marshalling Stride Periodic Vesting Account account")
-		}
-		accInt, err := strconv.Atoi(dva.BaseVestingAccount.BaseAccount.AccountNumber)
-		if err != nil {
-			return 0, 0, fmt.Errorf("account number is not an integer")
-		}
-		seqInt, err := strconv.Atoi(dva.BaseVestingAccount.BaseAccount.Sequence)
-		if err != nil {
-			return 0, 0, fmt.Errorf("sequence number is not an integer")
-		}
-		return accInt, seqInt, nil
-	} else if strings.Contains(acctType.Type, "EthAccount") {
-		var eth EthAccount
-		err := json.Unmarshal(queryResponseBytes, &eth)
-		if err != nil {
-			return 0, 0, fmt.Errorf("error un-marshalling ethermint account")
-		}
-		accInt, err := strconv.Atoi(eth.BaseAccount.AccountNumber)
-		if err != nil {
-			return 0, 0, fmt.Errorf("account number is not an integer")
-		}
-		seqInt, err := strconv.Atoi(eth.BaseAccount.Sequence)
-		if err != nil {
-			return 0, 0, fmt.Errorf("sequence number is not an integer")
-		}
-		return accInt, seqInt, nil
+func parseAccountQueryResponse(queryResponseBytes []byte, sdkVersion string) (int, int, error) {
+	//TODO: obviously this is an ugly hack for v0.50. Need to do something better
+	if strings.Contains(sdkVersion, "v0.50") {
+		return parseAcctByType50(queryResponseBytes)
 	} else {
-		return accInt, seqInt, fmt.Errorf("cannot parse account type")
+		return parseAcctByType(queryResponseBytes)
 	}
 }
 
+func convertAcctDetails(acctSeq string, acctNum string) (int, int, error) {
+	accInt, err := strconv.Atoi(acctNum)
+	if err != nil {
+		return 0, 0, fmt.Errorf("account number is not an integer")
+	}
+	seqInt, err := strconv.Atoi(acctSeq)
+	if err != nil {
+		return 0, 0, fmt.Errorf("sequence number is not an integer")
+	}
+	return accInt, seqInt, nil
+}
+
+func parseAcctByType50(respBytes []byte) (int, int, error) {
+	var acctType AcctType50
+	err := json.Unmarshal(respBytes, &acctType)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to unmarshal account type: %s", err)
+	}
+
+	switch {
+	case strings.Contains(acctType.Account.Type, "BaseAccount"):
+		var ba BaseAccount50
+		err = json.Unmarshal(respBytes, &ba)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal base account (SDK v0.50): %s", err)
+		}
+		return convertAcctDetails(ba.Account.Value.Sequence, ba.Account.Value.AccountNumber)
+	default:
+		return 0, 0, fmt.Errorf("unknown account type (SDK v0.50): %s", acctType.Account.Type)
+	}
+}
+
+func parseAcctByType(respBytes []byte) (int, int, error) {
+	var acctType AccountType
+	err := json.Unmarshal(respBytes, &acctType)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to unmarshal account type: %s", err)
+	}
+
+	switch {
+	case strings.Contains(acctType.Type, "BaseAccount"):
+		var ba BaseAccount
+		err = json.Unmarshal(respBytes, &ba)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal base account: %s", err)
+		}
+		return convertAcctDetails(ba.Sequence, ba.AccountNumber)
+	case strings.Contains(acctType.Type, "PeriodicVestingAccount"):
+		var pva PeriodicVestingAccount
+		err = json.Unmarshal(respBytes, &pva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal periodic vesting account: %s", err)
+		}
+		return convertAcctDetails(pva.BaseVestingAccount.BaseAccount.Sequence, pva.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Type, "ContinuousVestingAccount"):
+		var cva ContinuousVestingAccount
+		err = json.Unmarshal(respBytes, &cva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal continuous vesting account: %s", err)
+		}
+		return convertAcctDetails(cva.BaseVestingAccount.BaseAccount.Sequence, cva.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Type, "DelayedVestingAccount"):
+		var dva DelayedVestingAccount
+		err = json.Unmarshal(respBytes, &dva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal delayed vesting account: %s", err)
+		}
+		return convertAcctDetails(dva.BaseVestingAccount.BaseAccount.Sequence, dva.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Type, "StridePeriodicVestingAccount"):
+		var spva StridePeriodicVestingAccount
+		err = json.Unmarshal(respBytes, &spva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal stride periodic vesting account: %s", err)
+		}
+		return convertAcctDetails(spva.BaseVestingAccount.BaseAccount.Sequence, spva.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Type, "EthAccount"):
+		var ea EthAccount
+		err = json.Unmarshal(respBytes, &ea)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal eth account: %s", err)
+		}
+	}
+	return 0, 0, fmt.Errorf("unknown account type: %s", acctType.Type)
+}
+
 // Return: accountNumber, sequenceNumber, error
-func getAccSeq(binary, addr, node string) (int, int, error) {
-	cmdArgs := []string{"query", "--node", node, "account", addr, "--output", "json"}
+func getAccSeq(binary, addr, node string, sdkVersion string) (int, int, error) {
+	var cmdArgs []string
+
+	if strings.Contains(sdkVersion, "v0.50") {
+		cmdArgs = []string{"query", "auth", "account", addr, "--output", "json", "--node", node}
+	} else {
+		cmdArgs = []string{"query", "--node", node, "account", addr, "--output", "json"}
+	}
+
 	cmd := exec.Command(binary, cmdArgs...)
 	b, err := cmd.CombinedOutput()
 	if err != nil {
@@ -1244,7 +1254,7 @@ func getAccSeq(binary, addr, node string) (int, int, error) {
 	fmt.Println(cmd)
 	fmt.Println(string(b))
 
-	return parseAccountQuery(b)
+	return parseAccountQueryResponse(b, sdkVersion)
 }
 
 // Get account balance for a particular denom
