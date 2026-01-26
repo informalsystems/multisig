@@ -197,6 +197,79 @@ type BaseAccount50 struct {
 	} `json:"account"`
 }
 
+type PeriodicVestingAccount50 struct {
+	Account struct {
+		Type  string `json:"type"`
+		Value struct {
+			BaseVestingAccount struct {
+				BaseAccount struct {
+					Address       string `json:"address"`
+					AccountNumber string `json:"account_number"`
+					Sequence      string `json:"sequence"`
+				} `json:"base_account"`
+			} `json:"base_vesting_account"`
+		} `json:"value"`
+	} `json:"account"`
+}
+
+type ContinuousVestingAccount50 struct {
+	Account struct {
+		Type  string `json:"type"`
+		Value struct {
+			BaseVestingAccount struct {
+				BaseAccount struct {
+					Address       string `json:"address"`
+					AccountNumber string `json:"account_number"`
+					Sequence      string `json:"sequence"`
+				} `json:"base_account"`
+			} `json:"base_vesting_account"`
+		} `json:"value"`
+	} `json:"account"`
+}
+
+type DelayedVestingAccount50 struct {
+	Account struct {
+		Type  string `json:"type"`
+		Value struct {
+			BaseVestingAccount struct {
+				BaseAccount struct {
+					Address       string `json:"address"`
+					AccountNumber string `json:"account_number"`
+					Sequence      string `json:"sequence"`
+				} `json:"base_account"`
+			} `json:"base_vesting_account"`
+		} `json:"value"`
+	} `json:"account"`
+}
+
+type StridePeriodicVestingAccount50 struct {
+	Account struct {
+		Type  string `json:"type"`
+		Value struct {
+			BaseVestingAccount struct {
+				BaseAccount struct {
+					Address       string `json:"address"`
+					AccountNumber string `json:"account_number"`
+					Sequence      string `json:"sequence"`
+				} `json:"base_account"`
+			} `json:"base_vesting_account"`
+		} `json:"value"`
+	} `json:"account"`
+}
+
+type EthAccount50 struct {
+	Account struct {
+		Type  string `json:"type"`
+		Value struct {
+			BaseAccount struct {
+				Address       string `json:"address"`
+				AccountNumber string `json:"account_number"`
+				Sequence      string `json:"sequence"`
+			} `json:"base_account"`
+		} `json:"value"`
+	} `json:"account"`
+}
+
 type AccountBalance struct {
 	Balances []struct {
 		Denom  string `json:"denom"`

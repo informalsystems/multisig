@@ -1138,8 +1138,8 @@ func parseTxResult(txResultBytes []byte) (int, string, error) {
 // Parse out the account and sequence number
 // Return: accountNumber, sequenceNumber, error
 func parseAccountQueryResponse(queryResponseBytes []byte, sdkVersion string) (int, int, error) {
-	//TODO: obviously this is an ugly hack for v0.50. Need to do something better
-	if strings.Contains(sdkVersion, "v0.50") {
+	// SDK 0.50+ uses a different response format with wrapped account info
+	if isSDK050OrGreater(sdkVersion) {
 		return parseAcctByType50(queryResponseBytes)
 	} else {
 		return parseAcctByType(queryResponseBytes)
@@ -1170,11 +1170,46 @@ func parseAcctByType50(respBytes []byte) (int, int, error) {
 		var ba BaseAccount50
 		err = json.Unmarshal(respBytes, &ba)
 		if err != nil {
-			return 0, 0, fmt.Errorf("failed to unmarshal base account (SDK v0.50): %s", err)
+			return 0, 0, fmt.Errorf("failed to unmarshal base account (SDK v0.50+): %s", err)
 		}
 		return convertAcctDetails(ba.Account.Value.Sequence, ba.Account.Value.AccountNumber)
+	case strings.Contains(acctType.Account.Type, "PeriodicVestingAccount"):
+		var pva PeriodicVestingAccount50
+		err = json.Unmarshal(respBytes, &pva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal periodic vesting account (SDK v0.50+): %s", err)
+		}
+		return convertAcctDetails(pva.Account.Value.BaseVestingAccount.BaseAccount.Sequence, pva.Account.Value.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Account.Type, "ContinuousVestingAccount"):
+		var cva ContinuousVestingAccount50
+		err = json.Unmarshal(respBytes, &cva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal continuous vesting account (SDK v0.50+): %s", err)
+		}
+		return convertAcctDetails(cva.Account.Value.BaseVestingAccount.BaseAccount.Sequence, cva.Account.Value.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Account.Type, "DelayedVestingAccount"):
+		var dva DelayedVestingAccount50
+		err = json.Unmarshal(respBytes, &dva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal delayed vesting account (SDK v0.50+): %s", err)
+		}
+		return convertAcctDetails(dva.Account.Value.BaseVestingAccount.BaseAccount.Sequence, dva.Account.Value.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Account.Type, "StridePeriodicVestingAccount"):
+		var spva StridePeriodicVestingAccount50
+		err = json.Unmarshal(respBytes, &spva)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal stride periodic vesting account (SDK v0.50+): %s", err)
+		}
+		return convertAcctDetails(spva.Account.Value.BaseVestingAccount.BaseAccount.Sequence, spva.Account.Value.BaseVestingAccount.BaseAccount.AccountNumber)
+	case strings.Contains(acctType.Account.Type, "EthAccount"):
+		var ea EthAccount50
+		err = json.Unmarshal(respBytes, &ea)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal eth account (SDK v0.50+): %s", err)
+		}
+		return convertAcctDetails(ea.Account.Value.BaseAccount.Sequence, ea.Account.Value.BaseAccount.AccountNumber)
 	default:
-		return 0, 0, fmt.Errorf("unknown account type (SDK v0.50): %s", acctType.Account.Type)
+		return 0, 0, fmt.Errorf("unknown account type (SDK v0.50+): %s", acctType.Account.Type)
 	}
 }
 
@@ -1227,6 +1262,7 @@ func parseAcctByType(respBytes []byte) (int, int, error) {
 		if err != nil {
 			return 0, 0, fmt.Errorf("failed to unmarshal eth account: %s", err)
 		}
+		return convertAcctDetails(ea.BaseAccount.Sequence, ea.BaseAccount.AccountNumber)
 	}
 	return 0, 0, fmt.Errorf("unknown account type: %s", acctType.Type)
 }
@@ -1235,7 +1271,10 @@ func parseAcctByType(respBytes []byte) (int, int, error) {
 func getAccSeq(binary, addr, node string, sdkVersion string) (int, int, error) {
 	var cmdArgs []string
 
-	if strings.Contains(sdkVersion, "v0.50") {
+	// SDK version command mappings:
+	// SDK < 0.50: query account
+	// SDK >= 0.50: query auth account
+	if isSDK050OrGreater(sdkVersion) {
 		cmdArgs = []string{"query", "auth", "account", addr, "--output", "json", "--node", node}
 	} else {
 		cmdArgs = []string{"query", "--node", node, "account", addr, "--output", "json"}
