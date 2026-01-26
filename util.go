@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 // ChainInfo simplified version of the chain information from the registry
@@ -146,4 +147,47 @@ func parseSdkVersionFromJson(nodeInfo NodeInfo) (string, error) {
 		}
 	}
 	return "", errors.New(fmt.Sprintf("cannot parse sdk version, cannot find sdk version value"))
+}
+
+// parseSdkVersion extracts major, minor, and patch version numbers from SDK version string
+// Version format is typically: v0.50.1 or v0.47.5
+// Returns: major, minor, patch, error
+func parseSdkVersion(version string) (int, int, int, error) {
+	if version == "" {
+		return 0, 0, 0, errors.New("empty version string")
+	}
+
+	var major, minor, patch int
+	_, err := fmt.Sscanf(version, "v%d.%d.%d", &major, &minor, &patch)
+	if err != nil {
+		// Try parsing without patch version
+		_, err2 := fmt.Sscanf(version, "v%d.%d", &major, &minor)
+		if err2 != nil {
+			return 0, 0, 0, fmt.Errorf("failed to parse version %s: %s", version, err)
+		}
+		patch = 0
+	}
+
+	return major, minor, patch, nil
+}
+
+// isSDK050OrGreater checks if the SDK version is 0.50 or greater
+// SDK 0.50+ uses "query auth account" instead of "query account"
+func isSDK050OrGreater(version string) bool {
+	major, minor, _, err := parseSdkVersion(version)
+	if err != nil {
+		// If parsing fails, fall back to string comparison
+		return strings.Contains(version, "v0.50") || strings.Contains(version, "v0.51") ||
+		       strings.Contains(version, "v0.52") || strings.Contains(version, "v0.53") ||
+		       strings.Contains(version, "v0.54") || strings.Contains(version, "v0.55")
+	}
+
+	if major == 0 && minor >= 50 {
+		return true
+	}
+	if major > 0 {
+		return true
+	}
+
+	return false
 }
