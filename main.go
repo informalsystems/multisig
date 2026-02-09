@@ -1140,7 +1140,13 @@ func parseTxResult(txResultBytes []byte) (int, string, error) {
 func parseAccountQueryResponse(queryResponseBytes []byte, sdkVersion string) (int, int, error) {
 	// SDK 0.50+ uses a different response format with wrapped account info
 	if isSDK050OrGreater(sdkVersion) {
-		return parseAcctByType50(queryResponseBytes)
+		acct, seq, err := parseAcctByType50(queryResponseBytes)
+		if err != nil {
+			// Some chains report SDK >= 0.50 but still return the old response format.
+			// Fall back to the pre-0.50 parser.
+			return parseAcctByType(queryResponseBytes)
+		}
+		return acct, seq, nil
 	} else {
 		return parseAcctByType(queryResponseBytes)
 	}
