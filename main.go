@@ -1171,6 +1171,11 @@ func parseAcctByType50(respBytes []byte) (int, int, error) {
 		return 0, 0, fmt.Errorf("failed to unmarshal account type: %s", err)
 	}
 
+	// Some SDK v0.50+ chains use proto-JSON encoding with @type instead of Amino type/value.
+	if acctType.Account.Type == "" {
+		return parseAcctByType50Proto(respBytes)
+	}
+
 	switch {
 	case strings.Contains(acctType.Account.Type, "BaseAccount"):
 		var ba BaseAccount50
@@ -1216,6 +1221,28 @@ func parseAcctByType50(respBytes []byte) (int, int, error) {
 		return convertAcctDetails(ea.Account.Value.BaseAccount.Sequence, ea.Account.Value.BaseAccount.AccountNumber)
 	default:
 		return 0, 0, fmt.Errorf("unknown account type (SDK v0.50+): %s", acctType.Account.Type)
+	}
+}
+
+// parseAcctByType50Proto handles SDK v0.50+ chains that return proto-JSON
+// encoding (using @type with fields directly in the account object, no value wrapper).
+func parseAcctByType50Proto(respBytes []byte) (int, int, error) {
+	var acctType AcctType50Proto
+	err := json.Unmarshal(respBytes, &acctType)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to unmarshal proto account type: %s", err)
+	}
+
+	switch {
+	case strings.Contains(acctType.Account.Type, "BaseAccount"):
+		var ba BaseAccount50Proto
+		err = json.Unmarshal(respBytes, &ba)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to unmarshal base account (proto): %s", err)
+		}
+		return convertAcctDetails(ba.Account.Sequence, ba.Account.AccountNumber)
+	default:
+		return 0, 0, fmt.Errorf("unknown account type (SDK v0.50+ proto): %s", acctType.Account.Type)
 	}
 }
 

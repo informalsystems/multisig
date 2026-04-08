@@ -176,6 +176,25 @@ type AcctType50 struct {
 	}
 }
 
+// AcctType50Proto handles SDK v0.50+ chains that use proto-JSON encoding
+// where the account uses @type instead of type/value Amino encoding.
+type AcctType50Proto struct {
+	Account struct {
+		Type string `json:"@type"`
+	} `json:"account"`
+}
+
+// BaseAccount50Proto handles the proto-JSON format where fields are directly
+// in the account object (no value wrapper).
+type BaseAccount50Proto struct {
+	Account struct {
+		Type          string `json:"@type"`
+		Address       string `json:"address"`
+		AccountNumber string `json:"account_number"`
+		Sequence      string `json:"sequence"`
+	} `json:"account"`
+}
+
 type BaseAccount50 struct {
 	Account struct {
 		Type  string `json:"type"`
