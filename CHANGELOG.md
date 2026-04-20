@@ -74,7 +74,7 @@ This major release has a few improvements such as new commands, a new config fil
 # v0.2.1 (May 10, 2022)
 
 
-Thi minor release includes some minor bug fixes identified after the previous release
+The minor release includes some minor bug fixes identified after the previous release
 
 - Fix the `raw cat` command ([#17](https://github.com/informalsystems/multisig/issues/17))
 - Fix the `multisig list --all` command ([#23](https://github.com/informalsystems/multisig/issues/23))
