@@ -182,7 +182,7 @@ func cmdDelegate(cmd *cobra.Command, args []string) error {
 	// Safe check for amount
 	amountDecCoin, err := sdk.ParseDecCoin(amount)
 	if err != nil {
-		return fmt.Errorf("error parsing the amount to delegate, plesae specify amount and denom, e.g. 100uatom")
+		return fmt.Errorf("error parsing the amount to delegate, please specify amount and denom, e.g. 100uatom")
 	}
 
 	// Get fees
